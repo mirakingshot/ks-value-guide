@@ -108,8 +108,9 @@ function render(el, cols, rows, search, head, init, expand) {
       });
     el.querySelector("tbody").innerHTML = list.map(r => {
       const o = expand && open.has(r);
-      const cells = cols.map((c, i) => `<td>${i === 0 && expand ? `<button class="chev" aria-expanded="${!!o}" aria-label="Show breakdown"></button>` : ""}${c.text(r)}</td>`).join("");
-      return `<tr${expand ? ` class="exp" data-i="${rows.indexOf(r)}"` : ""}>${cells}</tr>` +
+      const cells = cols.map((c, i) => `<td data-label="${c.label}"${c.hero ? ' class="hero"' : ""}>${i === 0 && expand ? `<button class="chev" aria-expanded="${!!o}" aria-label="Show breakdown"></button>` : ""}${c.text(r)}</td>`).join("");
+      const cls = [expand ? "exp" : "", r.rowCls || ""].filter(Boolean).join(" ");
+      return `<tr${cls ? ` class="${cls}"` : ""}${expand ? ` data-i="${rows.indexOf(r)}"` : ""}>${cells}</tr>` +
         (o ? `<tr class="detail"><td colspan="${cols.length}">${expand(r)}</td></tr>` : "");
     }).join("");
     el.querySelectorAll("th button").forEach(b => {
@@ -120,7 +121,7 @@ function render(el, cols, rows, search, head, init, expand) {
     });
   }
   const input = search ? `<input type="search" placeholder="Search items" aria-label="Search items">` : "";
-  const tbl = `<div class="wrap"><table><thead><tr>${cols.map(c => `<th><button data-k="${c.key}">${c.label}<span class="arrow" aria-hidden="true"></span></button></th>`).join("")}</tr></thead><tbody></tbody></table></div>`;
+  const tbl = `<div class="wrap"><table class="rt${cols.some(c => c.hero) ? " has-hero" : ""}"><thead><tr>${cols.map(c => `<th><button data-k="${c.key}">${c.label}<span class="arrow" aria-hidden="true"></span></button></th>`).join("")}</tr></thead><tbody></tbody></table></div>`;
   el.innerHTML = head
     ? `<div class="card"><div class="card-head"><div><h2>${head[0]}</h2><p>${head[1]}</p></div>${input}</div>${tbl}</div>`
     : input + tbl;
@@ -186,7 +187,7 @@ const packCols = [
   { key: "price", label: "Price", text: r => fmt(r.price, 2) },
   { key: "worth", label: "Worth at pack rates", text: r => fmt(r.worth, 2) + (r.missing.length ? ` <span class="dim" title="Unpriced: ${esc(r.missing.join(", "))}">(partial)</span>` : "") },
   { key: "ratio", label: "Ratio", text: r => `<span class="strong">${r.ratio.toFixed(2)}x</span>` },
-  { key: "v", label: "Verdict", sort: r => r.ratio, text: r => { const [t, c] = verdict(r); return `<span class="pill ${c}">${t}</span>`; } }
+  { key: "v", label: "Verdict", hero: true, sort: r => r.ratio, text: r => { const [t, c] = verdict(r); return `<span class="pill ${c}">${t}</span>`; } }
 ];
 
 function shopView(m, s) {
@@ -196,15 +197,21 @@ function shopView(m, s) {
   });
   const best = Math.max(0, ...rows.map(r => r.perToken || 0));
   rows.forEach(r => (r.pct = r.perToken == null ? null : r.perToken / best));
+  // Rank by value (ties share a rank); top 3 are highlighted, under 50% of best is faded
+  const ranked = rows.filter(r => r.perToken != null).sort((a, b) => b.perToken - a.perToken);
+  ranked.forEach((r, i) => {
+    r.rank = i && r.perToken === ranked[i - 1].perToken ? ranked[i - 1].rank : i + 1;
+    r.rowCls = r.rank <= 3 ? "top" : r.pct < 0.5 ? "low" : "";
+  });
   return { name: s.name, event: s.event, rows, best, unpriced: rows.filter(r => r.perToken == null).length };
 }
 
 const shopCols = [
-  { key: "item", label: "Item", text: r => esc(r.item) },
+  { key: "item", label: "Item", text: r => `<span class="ranked"><span class="rank${r.rank ? "" : " none"}" aria-label="${r.rank ? "Rank " + r.rank : "Unranked"}">${r.rank ? "#" + r.rank : "–"}</span><span>${esc(r.item)}</span></span>` },
   { key: "tokens", label: "Tokens", text: r => r.tokens.toLocaleString() },
   { key: "unit", label: "Baseline", text: r => fmt(r.unit) },
   { key: "perToken", label: "$ per token", text: r => `<span class="strong">${fmt(r.perToken, 6)}</span>` },
-  { key: "pct", label: "% of best", text: r => r.pct == null ? `<span class="pill amber">unpriced</span>` : `${Math.round(r.pct * 100)}%<span class="meter" style="width:${Math.round(r.pct * 60)}px"></span>` }
+  { key: "pct", label: "% of best", hero: true, text: r => r.pct == null ? `<span class="pill amber">unpriced</span>` : `${Math.round(r.pct * 100)}%<span class="meter" style="width:${Math.round(r.pct * 60)}px"></span>` }
 ];
 
 function parseDate(v, endOfDay) {

@@ -28,7 +28,7 @@ Promise.all([unitValues(), get("shops")]).then(([m, { shops: all }]) => {
     `;
     root.appendChild(sec);
 
-    render(sec.querySelector(".shop-table"), shopCols, v.rows, false);
+    render(sec.querySelector(".shop-table"), shopCols, v.rows, false, null, ["perToken", -1]);
   });
   const bar = document.createElement("div");
   bar.className = "pillbar"; bar.setAttribute("role", "navigation"); bar.setAttribute("aria-label", "Jump to a shop");

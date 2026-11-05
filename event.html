@@ -70,7 +70,7 @@ Promise.all([unitValues(), get("shops"), get("popups"), get("events").catch(() =
     sec.className = "card"; sec.open = true;
     sec.innerHTML = `<summary class="shop-summary"><h2>${esc(v.name)}</h2></summary><div class="shop-table"></div>`;
     shopsEl.appendChild(sec);
-    render(sec.querySelector(".shop-table"), shopCols, v.rows, false);
+    render(sec.querySelector(".shop-table"), shopCols, v.rows, false, null, ["perToken", -1]);
   });
 });
 </script></body></html>
