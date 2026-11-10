@@ -1,13 +1,13 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Event shops - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"></head>
+<title>Permanent event shops - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"></head>
 <body><main><div id="shops"></div>
-<p class="note">Token value is the best $ per token in the shop, since that is what a token is worth if spent well. "% of best" compares every item to it. Items with no pack price are unpriced. Assumes 1 unit per purchase.</p></main>
+<p class="note">Token value is the best $ per token in the shop, since that is what a token is worth if spent well. "% of best" compares every item to it. Items with no pack price are unpriced. Each purchase is 1 unit unless a Qty column is shown.</p></main>
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script>
 header("shops.html");
 Promise.all([unitValues(), get("shops")]).then(([m, { shops: all }]) => {
-  const shops = all.filter(s => !s.event);
+  const shops = all.filter(s => !s.event && !s.recurring);
   const root = document.getElementById("shops");
   let bestAll = 0, unpriced = 0;
   const ids = [];
@@ -15,10 +15,6 @@ Promise.all([unitValues(), get("shops")]).then(([m, { shops: all }]) => {
     const slug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const id = slug && !ids.includes(slug) ? slug : "shop-" + i;
     ids.push(id);
-    const v = shopView(m, s);
-    bestAll = Math.max(bestAll, v.best);
-    unpriced += v.unpriced;
-
     const sec = document.createElement("details");
     sec.className = "card";
     sec.id = id;
@@ -28,7 +24,9 @@ Promise.all([unitValues(), get("shops")]).then(([m, { shops: all }]) => {
     `;
     root.appendChild(sec);
 
-    render(sec.querySelector(".shop-table"), shopCols, v.rows, false, null, ["perToken", -1]);
+    const v = renderShop(sec.querySelector(".shop-table"), m, s);
+    bestAll = Math.max(bestAll, v.best);
+    unpriced += v.unpriced;
   });
   const bar = document.createElement("div");
   bar.className = "pillbar"; bar.setAttribute("role", "navigation"); bar.setAttribute("aria-label", "Jump to a shop");

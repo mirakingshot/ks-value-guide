@@ -31,8 +31,9 @@ Promise.all([unitValues(), get("shops"), get("popups"), get("featured").catch(()
       }).join("")
     : `<p class="dim">No featured packs yet. Add a row to the featured tab of your sheet.</p>`;
   document.getElementById("explore").innerHTML = [
-    ["event.html", "star", "Special events", "Holiday events with their currency shop and packs."],
-    ["shops.html", "bag", "Event shops", "What each shop token is worth."],
+    ["event.html", "star", "Seasonal events", "Holiday events with their currency shop and packs."],
+    ["recurring.html", "repeat", "Recurring event shops", "Shops from rotating events like Fantasy Theater, tier by tier."],
+    ["shops.html", "bag", "Permanent event shops", "What each shop token is worth."],
     ["popups.html", "gift", "Pop-up packs", "Every special pack versus regular prices."],
     ["build.html", "calc", "Pack builder", "Check any pack by typing in its items and price."],
     ["masterlist.html", "list", "Masterlist", "The dollar value of every upgrade item."]

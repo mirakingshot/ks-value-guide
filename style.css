@@ -73,6 +73,9 @@ a.pill{text-decoration:none}
 .shop-summary .pill{margin-left:4px}
 .eyebrow a{color:var(--lav-ink);text-decoration:none;font-weight:600}
 .eyebrow a:hover{text-decoration:underline}
+.tier+.tier{margin-top:26px;padding-top:20px;border-top:2px dashed var(--line)}
+.tier-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-bottom:10px}
+.tier-head h3{margin:0;font-size:1.05rem;font-weight:800;color:var(--title)}
 .section-label{font-size:1.15rem;font-weight:700;margin:26px 4px 12px}
 .price-field{display:flex;flex-direction:column;gap:4px;color:var(--mute);font-size:.82rem;font-weight:600}
 .money{display:flex;align-items:center;gap:6px;color:var(--ink);font-size:1rem}

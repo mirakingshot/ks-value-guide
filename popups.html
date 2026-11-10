@@ -15,7 +15,7 @@ Promise.all([unitValues(), get("popups")]).then(([m, { popups: all }]) => {
     ["Great deals", rows.filter(r => r.ratio >= 1.25).length, "gem", "peach"]
   ]);
   if (!rows.length) {
-    document.getElementById("t").innerHTML = `<div class="card"><h2>Pop-up packs</h2><p class="dim">No general pop-up packs yet. Packs that belong to a holiday event are on their <a href="event.html">Special events</a> page.</p></div>`;
+    document.getElementById("t").innerHTML = `<div class="card"><h2>Pop-up packs</h2><p class="dim">No general pop-up packs yet. Packs that belong to a holiday event are on their <a href="event.html">Seasonal events</a> page.</p></div>`;
     return;
   }
   render(document.getElementById("t"), packCols, rows, false, ["Pop-up packs", "Compared with the same contents at regular pack prices. Click a pack to see what is inside."], undefined, packDetail);

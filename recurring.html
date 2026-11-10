@@ -1,0 +1,71 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recurring event shops - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"></head>
+<body><main><div id="body"></div></main>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+header("recurring.html");
+Promise.all([unitValues(), get("shops"), get("events").catch(() => ({ events: [] }))]).then(([m, { shops }, { events: meta }]) => {
+  const events = new Map();
+  shops.filter(s => s.recurring).forEach(s => {
+    const k = s.recurring.trim().toLowerCase();
+    if (!events.has(k)) events.set(k, { name: s.recurring.trim(), shops: [] });
+    events.get(k).shops.push(s);
+  });
+  const want = new URLSearchParams(location.search).get("e");
+  const body = document.getElementById("body");
+  const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+  const findMeta = name => meta.find(x => x.event.trim().toLowerCase() === name.toLowerCase());
+  const tierCount = e => e.shops.reduce((a, s) => a + shopTiers(s).filter(g => g.tier).length, 0);
+
+  if (!want) {
+    // Dates are optional: a recurring event with a row in the events tab shows its current run, otherwise no tag
+    const list = [...events.values()].map((e, i) => ({ ...e, i, md: findMeta(e.name) }))
+      .map(e => ({ ...e, st: eventStatus(e.md) }))
+      .sort((a, b) => stateRank[a.st.state] - stateRank[b.st.state] || a.i - b.i);
+    stats([
+      ["Recurring events", list.length, "repeat", ""],
+      ["Currency shops", list.reduce((a, e) => a + e.shops.length, 0), "bag", "pink"],
+      ["Shop tiers", list.reduce((a, e) => a + tierCount(e), 0), "bars", "peach"]
+    ]);
+    body.innerHTML = `<div class="card"><div class="card-head"><div><h2>Choose an event</h2><p>Events that come back on a rotation, each with its currency shop on one page.</p></div></div>` +
+      (list.length
+        ? `<div class="big-links">${list.map(e => {
+            const t = tierCount(e);
+            const desc = plural(e.shops.length, "currency shop") + (t ? ", " + plural(t, "tier") : "");
+            const s = e.st.state;
+            return bigLink("recurring.html?e=" + encodeURIComponent(e.name), "repeat", e.name, desc, e.md && !(s === "active" && !e.st.end) ? e.st.label : "", s === "past" ? "past" : "", s === "past" ? "grey" : s === "upcoming" ? "" : "green");
+          }).join("")}</div>`
+        : `<p class="dim">No recurring events yet. Type the event name, such as Fantasy Theater, in the recurring column of its rows in the shops tab and it will show up here.</p>`) + `</div>`;
+    return;
+  }
+
+  const ev = events.get(want.trim().toLowerCase());
+  if (!ev) {
+    stats([]);
+    body.innerHTML = `<div class="card"><p>That event was not found. <a href="recurring.html">See all recurring event shops</a>.</p></div>`;
+    return;
+  }
+  const md = findMeta(ev.name), st = eventStatus(md);
+  document.title = ev.name + " - Mira’s KS Value Guide";
+  document.querySelector("h1").textContent = ev.name;
+  document.querySelector(".eyebrow").innerHTML = `<a href="recurring.html">Recurring event shops</a> / ${esc(ev.name)}`;
+  document.querySelector(".sub").innerHTML = `Currency shop for this event, valued at regular pack prices.` +
+    (md ? ` <span class="pill ${st.state === "past" ? "grey" : st.state === "upcoming" ? "amber" : "green"}">${st.label}</span>` : "");
+  body.innerHTML = `<div id="shops"></div>
+    <p class="note">Each tier is ranked on its own. Token value is the best $ per token in a tier, and "% of best" compares every item to it. Worth is the value of the whole purchase (Qty times the item's baseline). Items with no pack price are unpriced.</p>`;
+  const shopsEl = document.getElementById("shops");
+  const views = ev.shops.map(s => {
+    const sec = document.createElement("details");
+    sec.className = "card"; sec.open = true;
+    sec.innerHTML = `<summary class="shop-summary"><h2>${esc(s.name)}</h2></summary><div class="shop-table"></div>`;
+    shopsEl.appendChild(sec);
+    return renderShop(sec.querySelector(".shop-table"), m, s);
+  });
+  stats([
+    ["Currency shops", views.length, "bag", ""],
+    ["Tiers", views.reduce((a, v) => a + v.tiers, 0), "bars", "pink"],
+    ["Best currency value", views.length ? fmt(Math.max(...views.map(v => v.best)), 6) : "none yet", "gem", "peach"]
+  ]);
+});
+</script></body></html>

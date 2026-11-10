@@ -32,11 +32,12 @@ async function get(name) {
   const groups = new Map();
   const key = name === "shops" ? "shop" : "pack";
   for (const r of rows.filter(r => r[key] && r.item)) {
-    if (!groups.has(r[key])) groups.set(r[key], { name: r[key], price: num(r.price), limit: r.limit, event: r.event || "", list: [] });
-    groups.get(r[key]).list.push(name === "shops" ? { item: r.item, tokens: num(r.tokens) } : { item: r.item, qty: num(r.qty) });
+    if (!groups.has(r[key])) groups.set(r[key], { name: r[key], price: num(r.price), limit: r.limit, event: r.event || "", recurring: (r.recurring || r.reoccuring || r.reoccurring || "").trim(), list: [] });
+    const q = num(r.qty);
+    groups.get(r[key]).list.push(name === "shops" ? { item: r.item, tokens: num(r.tokens), qty: q > 0 ? q : 1, tier: r.tier || "" } : { item: r.item, qty: q });
   }
   return name === "shops"
-    ? { shops: [...groups.values()].map(g => ({ name: g.name, event: g.event, items: g.list })) }
+    ? { shops: [...groups.values()].map(g => ({ name: g.name, event: g.event, recurring: g.recurring, items: g.list })) }
     : { popups: [...groups.values()].map(g => ({ name: g.name, price: g.price, limit: g.limit, event: g.event, contents: g.list })) };
 }
 
@@ -59,6 +60,7 @@ const ICONS = {
   gem: '<path d="M12 3l8 6-8 12L4 9z"/><path d="M4 9h16"/>',
   calc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h1M12 12h1M16 12h0M8 16h1M12 16h1M16 16h0"/>',
   link: '<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>',
+  repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 013-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 01-3 3H3"/>',
   star: '<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>',
   home: '<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>',
   go: '<path d="M5 12h14M13 6l6 6-6 6"/>'
@@ -69,8 +71,9 @@ const hue = s => "c" + ([...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt
 function header(active) {
   const pages = [
     ["index.html", "Dashboard", "home", "Track what Kingshot packs, shops and events are really worth."],
-    ["event.html", "Special events", "star", "Holiday and limited-time events, each with its currency shop and pop-up packs."],
-    ["shops.html", "Event shops", "bag", "Currency shops from recurring minigame events, ranked by dollars of value per token."],
+    ["event.html", "Seasonal events", "star", "Holiday and limited-time events, each with its currency shop and pop-up packs."],
+    ["recurring.html", "Recurring event shops", "repeat", "Currency shops from events that come back on a rotation, ranked by dollars of value per token."],
+    ["shops.html", "Permanent event shops", "bag", "Currency shops that are always available, ranked by dollars of value per token."],
     ["popups.html", "Pop-up packs", "gift", "How special event packs compare with the same contents at regular prices."],
     ["build.html", "Pack builder", "calc", "Type in a pack's items and price to see how it compares with regular packs."],
     ["masterlist.html", "Masterlist", "list", "What every upgrade item is worth in dollars, based on regular packs."],
@@ -193,7 +196,8 @@ const packCols = [
 function shopView(m, s) {
   const rows = s.items.map(x => {
     const u = m[x.item] ? m[x.item].unit : null;
-    return { item: x.item, tokens: x.tokens, unit: u, perToken: u == null ? null : u / x.tokens };
+    const qty = x.qty || 1, value = u == null ? null : u * qty;
+    return { item: x.item, tokens: x.tokens, qty, unit: u, value, perToken: value == null ? null : value / x.tokens };
   });
   const best = Math.max(0, ...rows.map(r => r.perToken || 0));
   rows.forEach(r => (r.pct = r.perToken == null ? null : r.perToken / best));
@@ -206,13 +210,41 @@ function shopView(m, s) {
   return { name: s.name, event: s.event, rows, best, unpriced: rows.filter(r => r.perToken == null).length };
 }
 
-const shopCols = [
-  { key: "item", label: "Item", text: r => `<span class="ranked"><span class="rank${r.rank ? "" : " none"}" aria-label="${r.rank ? "Rank " + r.rank : "Unranked"}">${r.rank ? "#" + r.rank : "–"}</span><span>${esc(r.item)}</span></span>` },
-  { key: "tokens", label: "Tokens", text: r => r.tokens.toLocaleString() },
-  { key: "unit", label: "Baseline", text: r => fmt(r.unit) },
-  { key: "perToken", label: "$ per token", text: r => `<span class="strong">${fmt(r.perToken, 6)}</span>` },
-  { key: "pct", label: "% of best", hero: true, text: r => r.pct == null ? `<span class="pill amber">unpriced</span>` : `${Math.round(r.pct * 100)}%<span class="meter" style="width:${Math.round(r.pct * 60)}px"></span>` }
-];
+// The Qty column only appears when some item sells more than 1 per purchase; Worth is then the value of the whole purchase
+function shopCols(rows) {
+  const multi = rows.some(r => r.qty !== 1);
+  return [
+    { key: "item", label: "Item", text: r => `<span class="ranked"><span class="rank${r.rank ? "" : " none"}" aria-label="${r.rank ? "Rank " + r.rank : "Unranked"}">${r.rank ? "#" + r.rank : "–"}</span><span>${esc(r.item)}</span></span>` },
+    { key: "tokens", label: "Tokens", text: r => r.tokens.toLocaleString() },
+    ...(multi ? [{ key: "qty", label: "Qty", text: r => r.qty.toLocaleString() }] : []),
+    multi ? { key: "value", label: "Worth", text: r => fmt(r.value) } : { key: "unit", label: "Baseline", text: r => fmt(r.unit) },
+    { key: "perToken", label: "$ per token", text: r => `<span class="strong">${fmt(r.perToken, 6)}</span>` },
+    { key: "pct", label: "% of best", hero: true, text: r => r.pct == null ? `<span class="pill amber">unpriced</span>` : `${Math.round(r.pct * 100)}%<span class="meter" style="width:${Math.round(r.pct * 60)}px"></span>` }
+  ];
+}
+
+// Splits a shop's items by tier, in the order tiers first appear in the sheet. A shop with no tiers is one group with tier "".
+function shopTiers(s) {
+  const g = new Map();
+  for (const x of s.items) {
+    if (!g.has(x.tier)) g.set(x.tier, []);
+    g.get(x.tier).push(x);
+  }
+  return [...g].map(([tier, items]) => ({ tier, items }));
+}
+
+// Renders a shop into el: one table, or a separate table per tier. Ranks and "% of best" are worked out within each tier.
+function renderShop(el, m, s) {
+  const groups = shopTiers(s);
+  const views = groups.map(g => ({ tier: g.tier, ...shopView(m, { ...s, items: g.items }) }));
+  const table = (box, v) => render(box, shopCols(v.rows), v.rows, false, null, ["perToken", -1]);
+  if (groups.length === 1 && !groups[0].tier) table(el, views[0]);
+  else {
+    el.innerHTML = views.map(v => `<section class="tier"><div class="tier-head"><h3>${esc(v.tier || "Other")}</h3>${v.best ? `<span class="pill">Best ${fmt(v.best, 6)} per token</span>` : ""}</div><div class="tier-table"></div></section>`).join("");
+    el.querySelectorAll(".tier-table").forEach((box, i) => table(box, views[i]));
+  }
+  return { name: s.name, tiers: groups.filter(g => g.tier).length, best: Math.max(0, ...views.map(v => v.best)), unpriced: views.reduce((a, v) => a + v.unpriced, 0) };
+}
 
 function parseDate(v, endOfDay) {
   if (!v) return null;

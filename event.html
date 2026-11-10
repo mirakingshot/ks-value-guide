@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Special events - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"></head>
+<title>Seasonal events -Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"></head>
 <body><main><div id="body"></div></main>
 <script src="config.js"></script>
 <script src="app.js"></script>
@@ -44,33 +44,32 @@ Promise.all([unitValues(), get("shops"), get("popups"), get("events").catch(() =
   const st = eventStatus(md);
   if (!ev) {
     stats([]);
-    body.innerHTML = `<div class="card"><p>That event was not found. <a href="event.html">See all special events</a>.</p></div>`;
+    body.innerHTML = `<div class="card"><p>That event was not found. <a href="event.html">See all seasonal events</a>.</p></div>`;
     return;
   }
   document.title = ev.name + " - Mira’s KS Value Guide";
   document.querySelector("h1").textContent = ev.name;
-  document.querySelector(".eyebrow").innerHTML = `<a href="event.html">Special events</a> / ${esc(ev.name)}`;
+  document.querySelector(".eyebrow").innerHTML = `<a href="event.html">Seasonal events</a> / ${esc(ev.name)}`;
   document.querySelector(".sub").innerHTML = `Currency shop and pop-up packs for this event, valued at regular pack prices. <span class="pill ${st.state === "past" ? "grey" : st.state === "upcoming" ? "amber" : "green"}">${st.label}</span>`;
-  const views = ev.shops.map(s => shopView(m, s));
-  stats([
-    ["Pop-up packs", ev.packs.length, "gift", ""],
-    ["Best pack ratio", ev.packs.length ? Math.max(...ev.packs.map(p => p.ratio)).toFixed(2) + "x" : "none yet", "bars", "pink"],
-    ["Currency shops", views.length, "bag", "peach"],
-    ["Best currency value", views.length ? fmt(Math.max(...views.map(v => v.best)), 6) : "none yet", "gem", ""]
-  ]);
   body.innerHTML = `<div id="packs"></div><h2 class="section-label">Currency shop</h2><div id="shops"></div>
     <p class="note">Pack worth is what the same contents cost at regular pack rates. Currency value is the best $ per token in each shop.</p>`;
   if (ev.packs.length)
     render(document.getElementById("packs"), packCols, ev.packs, false, ["Pop-up packs", "Click a pack to see what is inside."], ["ratio", -1], packDetail);
   else document.getElementById("packs").innerHTML = `<div class="card"><h2>Pop-up packs</h2><p class="dim">No pop-up packs for this event yet.</p></div>`;
   const shopsEl = document.getElementById("shops");
-  if (!views.length) shopsEl.innerHTML = `<div class="card"><p class="dim">No currency shop for this event yet.</p></div>`;
-  views.forEach(v => {
+  const views = ev.shops.map(s => {
     const sec = document.createElement("details");
     sec.className = "card"; sec.open = true;
-    sec.innerHTML = `<summary class="shop-summary"><h2>${esc(v.name)}</h2></summary><div class="shop-table"></div>`;
+    sec.innerHTML = `<summary class="shop-summary"><h2>${esc(s.name)}</h2></summary><div class="shop-table"></div>`;
     shopsEl.appendChild(sec);
-    render(sec.querySelector(".shop-table"), shopCols, v.rows, false, null, ["perToken", -1]);
+    return renderShop(sec.querySelector(".shop-table"), m, s);
   });
+  if (!views.length) shopsEl.innerHTML = `<div class="card"><p class="dim">No currency shop for this event yet.</p></div>`;
+  stats([
+    ["Pop-up packs", ev.packs.length, "gift", ""],
+    ["Best pack ratio", ev.packs.length ? Math.max(...ev.packs.map(p => p.ratio)).toFixed(2) + "x" : "none yet", "bars", "pink"],
+    ["Currency shops", views.length, "bag", "peach"],
+    ["Best currency value", views.length ? fmt(Math.max(...views.map(v => v.best)), 6) : "none yet", "gem", ""]
+  ]);
 });
 </script></body></html>

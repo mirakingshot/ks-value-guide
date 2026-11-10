@@ -1,4 +1,4 @@
-shop,item,tokens,event
+shop,item,tokens,event,qty,tier,recurring
 Tidal Shop,100 XP Enhancement,250,
 Tidal Shop,1hr General Speed,250,
 Tidal Shop,Growth Manual,150,
