@@ -73,6 +73,11 @@ a.pill{text-decoration:none}
 .shop-summary .pill{margin-left:4px}
 .eyebrow a{color:var(--lav-ink);text-decoration:none;font-weight:600}
 .eyebrow a:hover{text-decoration:underline}
+.seg{display:inline-flex;flex-wrap:wrap;gap:4px;padding:4px;margin-bottom:18px;border-radius:14px;background:var(--head)}
+.seg button{all:unset;box-sizing:border-box;cursor:pointer;padding:7px 14px;border-radius:10px;font-size:.88rem;font-weight:600;color:var(--mute)}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed=true]{background:#fff;color:var(--lav-ink);box-shadow:0 2px 8px rgba(120,90,200,.15)}
+.seg button:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
 .tier+.tier{margin-top:26px;padding-top:20px;border-top:2px dashed var(--line)}
 .tier-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-bottom:10px}
 .tier-head h3{margin:0;font-size:1.05rem;font-weight:800;color:var(--title)}
@@ -93,7 +98,7 @@ a.pill{text-decoration:none}
 @media(max-width:560px){.brow{grid-template-columns:minmax(0,1fr) minmax(0,.6fr) 32px}.b-worth{grid-column:1/3;grid-row:2}.b-del{grid-row:1;grid-column:3}}
 .strong{font-weight:700}.dim{color:var(--mute)}.bad{color:var(--rose-ink);font-weight:600}
 .pill{display:inline-block;padding:3px 12px;border-radius:999px;font-size:.85rem;font-weight:500;background:var(--lav-bg);color:var(--lav-ink);white-space:normal}
-.pill.c1{background:#e0ebff;color:#2f5bc9}.pill.c2{background:#ffe0ef;color:#c2377d}.pill.c3{background:#ffe9d9;color:#b4571f}.pill.c4{background:#d9f3ea;color:#1d7a5a}
+.pill.purple{background:var(--lav-bg);color:var(--lav-ink)}.pill.c1{background:#e0ebff;color:#2f5bc9}.pill.c2{background:#ffe0ef;color:#c2377d}.pill.c3{background:#ffe9d9;color:#b4571f}.pill.c4{background:#d9f3ea;color:#1d7a5a}
 .pill.green{background:var(--green-bg);color:var(--green-ink)}.pill.amber{background:var(--amber-bg);color:var(--amber-ink)}.pill.rose{background:var(--rose-bg);color:var(--rose-ink)}
 .meter{display:inline-block;height:8px;background:linear-gradient(90deg,#ff7ab8,#7c5ce6);border-radius:99px;vertical-align:middle;margin-left:10px}
 .tag{font-size:.75rem;background:var(--amber-bg);color:var(--amber-ink);border-radius:99px;padding:1px 8px;margin-left:6px}

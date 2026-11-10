@@ -53,7 +53,7 @@ Promise.all([unitValues(), get("shops"), get("events").catch(() => ({ events: []
   document.querySelector(".sub").innerHTML = `Currency shop for this event, valued at regular pack prices.` +
     (md ? ` <span class="pill ${st.state === "past" ? "grey" : st.state === "upcoming" ? "amber" : "green"}">${st.label}</span>` : "");
   body.innerHTML = `<div id="shops"></div>
-    <p class="note">Each tier is ranked on its own. Token value is the best $ per token in a tier, and "% of best" compares every item to it. Worth is the value of the whole purchase (Qty times the item's baseline). Items with no pack price are unpriced.</p>`;
+    <p class="note">With tiers kept separate, each tier is ranked on its own and "% of best" compares items to the best $ per token in that tier. Ranking all tiers together compares every item across every tier. Worth is the value of the whole purchase (Qty times the item's baseline). Items with no pack price are unpriced.</p>`;
   const shopsEl = document.getElementById("shops");
   const views = ev.shops.map(s => {
     const sec = document.createElement("details");

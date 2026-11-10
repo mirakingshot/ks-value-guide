@@ -197,7 +197,7 @@ function shopView(m, s) {
   const rows = s.items.map(x => {
     const u = m[x.item] ? m[x.item].unit : null;
     const qty = x.qty || 1, value = u == null ? null : u * qty;
-    return { item: x.item, tokens: x.tokens, qty, unit: u, value, perToken: value == null ? null : value / x.tokens };
+    return { item: x.item, tier: x.tier, tokens: x.tokens, qty, unit: u, value, perToken: value == null ? null : value / x.tokens };
   });
   const best = Math.max(0, ...rows.map(r => r.perToken || 0));
   rows.forEach(r => (r.pct = r.perToken == null ? null : r.perToken / best));
@@ -211,10 +211,31 @@ function shopView(m, s) {
 }
 
 // The Qty column only appears when some item sells more than 1 per purchase; Worth is then the value of the whole purchase
-function shopCols(rows) {
+// Pill colour per tier. A tier named after a colour (Gold, Purple, Blue...) gets that colour;
+// any other tier gets the next colour not already taken, so tiers in one shop never share a colour.
+const TIER_HUES = [[/gold|orange|yellow|bronze/i, "c3"], [/purple|violet|lavender/i, "purple"], [/blue/i, "c1"], [/green/i, "c4"], [/pink|red|rose/i, "c2"], [/silver|grey|gray|white/i, "grey"]];
+function tierColors(order) {
+  const map = {}, used = new Set();
+  order.forEach(t => {
+    const hit = TIER_HUES.find(([re, c]) => re.test(t) && !used.has(c));
+    if (hit) { map[t] = hit[1]; used.add(hit[1]); }
+  });
+  const spare = ["purple", "c1", "c3", "c4", "c2", "grey"];
+  order.forEach(t => {
+    if (map[t]) return;
+    const c = spare.find(c => !used.has(c)) || spare[order.indexOf(t) % spare.length];
+    map[t] = c; used.add(c);
+  });
+  return map;
+}
+
+// tierOrder (optional): array of tier names; adds a Tier column that sorts in sheet order
+function shopCols(rows, tierOrder) {
   const multi = rows.some(r => r.qty !== 1);
+  const tc = tierOrder ? tierColors(tierOrder) : {};
   return [
     { key: "item", label: "Item", text: r => `<span class="ranked"><span class="rank${r.rank ? "" : " none"}" aria-label="${r.rank ? "Rank " + r.rank : "Unranked"}">${r.rank ? "#" + r.rank : "–"}</span><span>${esc(r.item)}</span></span>` },
+    ...(tierOrder ? [{ key: "tier", label: "Tier", sort: r => tierOrder.indexOf(r.tier), text: r => `<span class="pill ${tc[r.tier]}">${esc(r.tier || "Other")}</span>` }] : []),
     { key: "tokens", label: "Tokens", text: r => r.tokens.toLocaleString() },
     ...(multi ? [{ key: "qty", label: "Qty", text: r => r.qty.toLocaleString() }] : []),
     multi ? { key: "value", label: "Worth", text: r => fmt(r.value) } : { key: "unit", label: "Baseline", text: r => fmt(r.unit) },
@@ -233,17 +254,40 @@ function shopTiers(s) {
   return [...g].map(([tier, items]) => ({ tier, items }));
 }
 
-// Renders a shop into el: one table, or a separate table per tier. Ranks and "% of best" are worked out within each tier.
+// Renders a shop into el: one table, or (for a shop with tiers) a toggle between a separate table per tier,
+// ranked within each tier, and one table ranking every tier's items together. The choice is remembered per viewer.
 function renderShop(el, m, s) {
   const groups = shopTiers(s);
   const views = groups.map(g => ({ tier: g.tier, ...shopView(m, { ...s, items: g.items }) }));
-  const table = (box, v) => render(box, shopCols(v.rows), v.rows, false, null, ["perToken", -1]);
-  if (groups.length === 1 && !groups[0].tier) table(el, views[0]);
-  else {
-    el.innerHTML = views.map(v => `<section class="tier"><div class="tier-head"><h3>${esc(v.tier || "Other")}</h3>${v.best ? `<span class="pill">Best ${fmt(v.best, 6)} per token</span>` : ""}</div><div class="tier-table"></div></section>`).join("");
-    el.querySelectorAll(".tier-table").forEach((box, i) => table(box, views[i]));
-  }
-  return { name: s.name, tiers: groups.filter(g => g.tier).length, best: Math.max(0, ...views.map(v => v.best)), unpriced: views.reduce((a, v) => a + v.unpriced, 0) };
+  const summary = { name: s.name, tiers: groups.filter(g => g.tier).length, best: Math.max(0, ...views.map(v => v.best)), unpriced: views.reduce((a, v) => a + v.unpriced, 0) };
+  const table = (box, v, tierOrder) => render(box, shopCols(v.rows, tierOrder), v.rows, false, null, ["perToken", -1]);
+  if (groups.length === 1 && !groups[0].tier) { table(el, views[0]); return summary; }
+
+  const all = shopView(m, s), order = groups.map(g => g.tier);
+  let mode = "split";
+  try { if (localStorage.getItem("tierMode") === "all") mode = "all"; } catch (e) {}
+  el.innerHTML = `<div class="seg" role="group" aria-label="How to rank tiers"><button type="button" data-mode="split">Keep tiers separate</button><button type="button" data-mode="all">Rank all tiers together</button></div><div class="tier-body"></div>`;
+  const body = el.querySelector(".tier-body");
+  const draw = () => {
+    el.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+    if (mode === "all") {
+      // A fresh element each time, since render() adds its click handler to the element it is given
+      body.innerHTML = `<div class="tier-table"></div>`;
+      table(body.firstChild, all, order);
+    } else {
+      body.innerHTML = views.map(v => `<section class="tier"><div class="tier-head"><h3>${esc(v.tier || "Other")}</h3>${v.best ? `<span class="pill">Best ${fmt(v.best, 6)} per token</span>` : ""}</div><div class="tier-table"></div></section>`).join("");
+      body.querySelectorAll(".tier-table").forEach((box, i) => table(box, views[i]));
+    }
+  };
+  el.querySelector(".seg").addEventListener("click", e => {
+    const b = e.target.closest("button[data-mode]");
+    if (!b || b.dataset.mode === mode) return;
+    mode = b.dataset.mode;
+    try { localStorage.setItem("tierMode", mode); } catch (e) {}
+    draw();
+  });
+  draw();
+  return summary;
 }
 
 function parseDate(v, endOfDay) {
