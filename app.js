@@ -111,7 +111,7 @@ function render(el, cols, rows, search, head, init, expand) {
       });
     el.querySelector("tbody").innerHTML = list.map(r => {
       const o = expand && open.has(r);
-      const cells = cols.map((c, i) => `<td data-label="${c.label}"${c.hero ? ' class="hero"' : ""}>${i === 0 && expand ? `<button class="chev" aria-expanded="${!!o}" aria-label="Show breakdown"></button>` : ""}${c.text(r)}</td>`).join("");
+      const cells = cols.map((c, i) => `<td data-label="${c.label}"${c.hero ? ' class="hero"' : c.wide ? ' class="wide"' : ""}>${i === 0 && expand ? `<button class="chev" aria-expanded="${!!o}" aria-label="Show breakdown"></button>` : ""}${c.text(r)}</td>`).join("");
       const cls = [expand ? "exp" : "", r.rowCls || ""].filter(Boolean).join(" ");
       return `<tr${cls ? ` class="${cls}"` : ""}${expand ? ` data-i="${rows.indexOf(r)}"` : ""}>${cells}</tr>` +
         (o ? `<tr class="detail"><td colspan="${cols.length}">${expand(r)}</td></tr>` : "");

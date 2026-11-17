@@ -15,8 +15,8 @@ unitValues().then(m => {
   ]);
   render(document.getElementById("t"), [
     { key: "item", label: "Item", text: r => r.item },
-    { key: "source", label: "Source", text: r => `<span class="pill ${hue(r.source)}">${r.source}</span>` },
-    { key: "unit", label: "Baseline", text: r => `<span class="strong">${fmt(r.unit)}</span>` }
+    { key: "source", label: "Source", wide: true, text: r => `<span class="pill ${hue(r.source)}">${r.source}</span>` },
+    { key: "unit", label: "Baseline", hero: true, text: r => `<span class="strong">${fmt(r.unit)}</span>` }
   ], rows, true, ["Item values", "Based on what regular packs charge for each item"]);
 });
 </script></body></html>
