@@ -12,7 +12,7 @@ Import `data/values.csv`, `data/shops.csv`, `data/popups.csv`, `data/featured.cs
 - **values**: item, qty, usd, source, superseded. Unit value = usd / qty. Put TRUE in superseded to ignore a line.
 - **shops**: shop, item, tokens, plus optional event, recurring, qty, tier. One row per shop item. A new shop name starts a new table. `qty` is how many units one purchase gives (blank means 1); when any item in a table has a qty other than 1, a Qty column appears and value per token uses the whole purchase. `tier` splits a shop into separate tables on the same page, one per tier, in the order the tiers first appear (repeat the items on new rows for each tier with that tier's token cost). Ranks and "% of best" are worked out within each tier.
 - **featured**: title, description, url, badge (optional `event` column too). If the url is an event page (event.html?e=Halloween) or the `event` column names an event with dates in the `events` tab, the button shows its active, upcoming or ended tag, and ended events are greyed and listed last. Each row becomes a big button on the dashboard under Special event pack valuations. url can be a page in this site (popups.html) or a full link; badge is optional (e.g. Ends Nov 7).
-- **popups**: pack, price, limit, item, qty, event (optional). One row per item in the pack; repeat the pack name and price on each row.
+- **popups**: pack, price, limit, item, qty, plus optional event or recurring. One row per item in the pack; repeat the pack name and price on each row. A pack with a `recurring` event name shows on that recurring event's page instead of the Pop-up packs page.
 
 Then for each tab: File > Share > Publish to web > pick the tab > Comma-separated values (.csv) > Publish. Paste each link into `config.js` and commit once. After that, editing cells updates the site (Google refreshes published sheets every few minutes).
 
@@ -21,11 +21,14 @@ Tips: format number columns as plain numbers. Item names must match exactly betw
 ## Active and past events
 Add an optional `events` tab with the columns `event, start, end` (dates like 2026-10-25, or whatever format Google Sheets shows). The event name must match the `event` column on shops and packs. Events whose end date has passed are greyed out and listed last, still clickable, with an "Ended" label. Events with a future start show "Starts ...". An event with no row is treated as active. Publish the tab as CSV and paste the link into `config.js` on the `events` line.
 
+## Event simulators
+To show a simulator tile on the dashboard, add a `simulator` column to the `events` tab and put the simulator's link in that event's row. Active and upcoming events with a link each get a tile (titled "<event> simulator") with their date tag; ended events drop off automatically. An optional `simulator description` column replaces the default tile text. When no current event has a simulator, a single tile links to the simulator home page.
+
 ## Pack builder
 `build.html` lets visitors type items from the masterlist plus a total price and see the pack's worth and ratio at baseline. It uses the `values` tab, so it needs no extra setup.
 
 ## Recurring event shops
-Recurring events come back on a rotation (like Fantasy Theater). Put the event name in the `recurring` column of each of its shop rows and the shop moves from the Permanent event shops page to `recurring.html?e=Fantasy%20Theater`; `recurring.html` with no event shows a tile per recurring event. Use `tier` (for example Tier 1, Tier 2) when the shop sells the same items at different token costs, and `qty` when a purchase gives more than 1. A row in the `events` tab with the same name is optional and shows the current run's dates on the tile.
+Recurring events come back on a rotation (like Fantasy Theater). Put the event name in the `recurring` column of each of its shop rows (and of any pop-up packs in the popups tab that belong to it) and the shop moves from the Permanent event shops page to `recurring.html?e=Fantasy%20Theater`; `recurring.html` with no event shows a tile per recurring event. Use `tier` (for example Tier 1, Tier 2) when the shop sells the same items at different token costs, and `qty` when a purchase gives more than 1. A row in the `events` tab with the same name is optional and shows the current run's dates on the tile.
 
 Example rows:
 

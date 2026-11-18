@@ -1,17 +1,33 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dashboard - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"></head>
-<body><main>
-<div class="card"><div class="card-head" style="margin-bottom:8px"><div><h2>About this guide</h2></div></div><p style="margin:0">The purpose of this valuation guide is to help give a realistic reference to point to when special packs are a good deal and what items are most valuable in currency shops. The baseline value of items is determined by the most readily available and recurring packs for those items. For example, the baseline value for Truegold is determined by the value of TG in the Custom Selection recurring deal. If you are curious, the Masterlist has each item listed with its source pack associated with it.</p><p>Because item quantities in packs can vary by kingdom age, this guide likely will be off if you aren't in my kingdom range. Though, I believe it can still serve as a useful reference.</p></div>
-<div class="card"><div class="card-head"><div><h2>Special event pack valuations</h2><p>Jump straight to the valuation for a limited-time pack.</p></div></div><div class="big-links" id="featured"></div></div>
-<div class="card"><div class="card-head"><div><h2>Explore the guide</h2><p>Everything is priced from what regular packs charge.</p></div></div><div class="big-links" id="explore"></div></div>
+<body class="dash"><main>
+<div class="dash-grid"><div class="dash-main">
+<div class="card"><div class="card-head"><div><h2>Special event pack valuations</h2><p>Jump straight to the valuation for a limited-time pack.</p></div></div><div class="link-list wide" id="featured"></div></div>
+<div class="card"><div class="card-head"><div><h2>Event simulators</h2><p>For chance-based events running now. See what you would likely need to spend to reach your goal, and whether it is worth it.</p></div></div><div class="link-list wide" id="sims"></div></div>
+<div class="card"><div class="card-head"><div><h2>Explore the guide</h2><p>Everything is priced from what regular packs charge.</p></div></div><div class="link-list two" id="explore"></div></div>
+</div><div class="dash-side">
+<section class="about"><h2>About this guide</h2><p>The purpose of this valuation guide is to help give a realistic reference to point to when special packs are a good deal and what items are most valuable in currency shops. The baseline value of items is determined by the most readily available and recurring packs for those items. For example, the baseline value for Truegold is determined by the value of TG in the Custom Selection recurring deal. If you are curious, the Masterlist has each item listed with its source pack associated with it.</p><p>Because item quantities in packs can vary by kingdom age, this guide likely will be off if you aren't in my kingdom range. Though, I believe it can still serve as a useful reference.</p></section>
+</div></div>
 </main>
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script>
 header("index.html");
-Promise.all([unitValues(), get("shops"), get("popups"), get("featured").catch(() => ({ featured: [] })), get("events").catch(() => ({ events: [] }))])
+const eventsP = get("events").catch(() => ({ events: [] }));
+// Event simulators: one tile per row in the events tab with a link in its "simulator" column
+const SIM_HOME = "https://mirakingshot.github.io/eventsim/";
+const SIM_DESC = "See the spending most likely needed to reach your goal, and whether it is worth it using this guide's item values.";
+eventsP.then(({ events }) => {
+  const sims = events.filter(e => e.simulator).map((e, i) => ({ ...e, i, st: eventStatus(e) }))
+    .filter(e => e.st.state !== "past")
+    .sort((a, b) => stateRank[a.st.state] - stateRank[b.st.state] || a.i - b.i);
+  document.getElementById("sims").innerHTML = sims.length
+    ? sims.map(e => bigLink(e.simulator, "dice", e.event + " simulator", e["simulator description"] || SIM_DESC, e.st.label, "", e.st.state === "upcoming" ? "" : "green")).join("")
+    : bigLink(SIM_HOME, "dice", "Event simulator", "No chance-based events running right now. Browse every simulator here.", "Opens in new tab", "", "");
+});
+Promise.all([unitValues(), get("shops"), get("popups"), get("featured").catch(() => ({ featured: [] })), eventsP])
 .then(([m, { shops }, { popups }, { featured }, { events: meta }]) => {
-  const packs = scorePacks(m, popups).filter(p => !p.event);
+  const packs = scorePacks(m, popups).filter(p => !p.event && !p.recurring);
   stats([
     ["Items valued", Object.keys(m).length, "list", ""],
     ["Event shops", shops.filter(s => !s.event).length, "bag", "pink"],

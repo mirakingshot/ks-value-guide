@@ -38,7 +38,7 @@ async function get(name) {
   }
   return name === "shops"
     ? { shops: [...groups.values()].map(g => ({ name: g.name, event: g.event, recurring: g.recurring, items: g.list })) }
-    : { popups: [...groups.values()].map(g => ({ name: g.name, price: g.price, limit: g.limit, event: g.event, contents: g.list })) };
+    : { popups: [...groups.values()].map(g => ({ name: g.name, price: g.price, limit: g.limit, event: g.event, recurring: g.recurring, contents: g.list })) };
 }
 
 window.addEventListener("unhandledrejection", e =>
@@ -62,6 +62,7 @@ const ICONS = {
   link: '<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>',
   repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 013-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 01-3 3H3"/>',
   star: '<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>',
+  dice: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 8.5h0M15.5 8.5h0M12 12h0M8.5 15.5h0M15.5 15.5h0" stroke-width="2.6"/>',
   home: '<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>',
   go: '<path d="M5 12h14M13 6l6 6-6 6"/>'
 };
@@ -77,14 +78,14 @@ function header(active) {
     ["popups.html", "Pop-up packs", "gift", "How special event packs compare with the same contents at regular prices."],
     ["build.html", "Pack builder", "calc", "Type in a pack's items and price to see how it compares with regular packs."],
     ["masterlist.html", "Masterlist", "list", "What every upgrade item is worth in dollars, based on regular packs."],
-    ["others.html", "Other Pages by Mira", "link", "More Kingshot tools I built."]
+    ["others.html", "Other Pages by Mira", "link", "More Kingshot tools I built.", true]
   ];
   const cur = pages.find(p => p[0] === active);
   const logo = `<svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5fa8"/><stop offset="1" stop-color="#7c5ce6"/></linearGradient></defs><path d="M16 3l11 8-11 18L5 11z" fill="url(#lg)"/></svg>`;
   document.body.insertAdjacentHTML("afterbegin",
     `<aside class="side"><div class="brand">${logo}<span>Mira’s KS<small>Value Guide</small></span></div>
-    <nav aria-label="Pages">${pages.map(([h, t, i]) => `<a href="${h}"${h === "others.html" ? " class=aside" : ""}${h === active ? " aria-current=page" : ""}>${icon(i)}${t}</a>`).join("")}</nav>
-    <p class="tagline">Built on #1551 pack data. May or may not be relevant to other kingdoms.</p></aside>`);
+    <nav aria-label="Pages">${pages.filter(p => !p[4]).map(([h, t, i]) => `<a href="${h}"${h === active ? " aria-current=page" : ""}>${icon(i)}${t}</a>`).join("")}</nav>
+    <p class="tagline">Built on #1584 pack data. May or may not be relevant to other kingdoms.</p></aside>`);
   document.querySelector("main").insertAdjacentHTML("afterbegin",
     `<p class="eyebrow">Mira’s KS Value Guide</p><h1>${cur[1]}</h1><p class="sub">${cur[3]}</p><div class="stats" id="stats"></div>`);
   document.querySelector("main").insertAdjacentHTML("beforeend", `<footer class="credits">made with love by <a href="https://mirakingshot.github.io/">Mira [221330479]</a></footer>`);
@@ -154,7 +155,7 @@ function scorePacks(m, popups) {
       if (w != null) worth += w;
       return { item: c.item, qty: c.qty, unit: u, worth: w };
     });
-    return { name: p.name, sample: p.sample, price: p.price, limit: p.limit, event: p.event, worth, ratio: worth / p.price, lines, missing: lines.filter(l => l.worth == null).map(l => l.item) };
+    return { name: p.name, sample: p.sample, price: p.price, limit: p.limit, event: p.event, recurring: p.recurring || "", worth, ratio: worth / p.price, lines, missing: lines.filter(l => l.worth == null).map(l => l.item) };
   });
 }
 const verdict = r => r.ratio >= 1.25 ? ["Great", "green"] : r.ratio >= 0.9 ? ["Fair", "amber"] : ["Poor", "rose"];

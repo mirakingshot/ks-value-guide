@@ -5,13 +5,15 @@
 <script src="app.js"></script>
 <script>
 header("recurring.html");
-Promise.all([unitValues(), get("shops"), get("events").catch(() => ({ events: [] }))]).then(([m, { shops }, { events: meta }]) => {
+Promise.all([unitValues(), get("shops"), get("popups"), get("events").catch(() => ({ events: [] }))]).then(([m, { shops }, { popups }, { events: meta }]) => {
   const events = new Map();
-  shops.filter(s => s.recurring).forEach(s => {
-    const k = s.recurring.trim().toLowerCase();
-    if (!events.has(k)) events.set(k, { name: s.recurring.trim(), shops: [] });
-    events.get(k).shops.push(s);
-  });
+  const slot = n => {
+    const k = n.trim().toLowerCase();
+    if (!events.has(k)) events.set(k, { name: n.trim(), shops: [], packs: [] });
+    return events.get(k);
+  };
+  shops.filter(s => s.recurring).forEach(s => slot(s.recurring).shops.push(s));
+  scorePacks(m, popups).filter(p => p.recurring).forEach(p => slot(p.recurring).packs.push(p));
   const want = new URLSearchParams(location.search).get("e");
   const body = document.getElementById("body");
   const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
@@ -26,17 +28,21 @@ Promise.all([unitValues(), get("shops"), get("events").catch(() => ({ events: []
     stats([
       ["Recurring events", list.length, "repeat", ""],
       ["Currency shops", list.reduce((a, e) => a + e.shops.length, 0), "bag", "pink"],
-      ["Shop tiers", list.reduce((a, e) => a + tierCount(e), 0), "bars", "peach"]
+      ["Shop tiers", list.reduce((a, e) => a + tierCount(e), 0), "bars", "peach"],
+      ["Pop-up packs", list.reduce((a, e) => a + e.packs.length, 0), "gift", ""]
     ]);
-    body.innerHTML = `<div class="card"><div class="card-head"><div><h2>Choose an event</h2><p>Events that come back on a rotation, each with its currency shop on one page.</p></div></div>` +
+    body.innerHTML = `<div class="card"><div class="card-head"><div><h2>Choose an event</h2><p>Events that come back on a rotation, each with its currency shop and pop-up packs on one page.</p></div></div>` +
       (list.length
         ? `<div class="big-links">${list.map(e => {
             const t = tierCount(e);
-            const desc = plural(e.shops.length, "currency shop") + (t ? ", " + plural(t, "tier") : "");
+            const desc = [
+              e.shops.length ? plural(e.shops.length, "currency shop") + (t ? ", " + plural(t, "tier") : "") : "",
+              e.packs.length ? plural(e.packs.length, "pop-up pack") : ""
+            ].filter(Boolean).join(", ");
             const s = e.st.state;
             return bigLink("recurring.html?e=" + encodeURIComponent(e.name), "repeat", e.name, desc, e.md && !(s === "active" && !e.st.end) ? e.st.label : "", s === "past" ? "past" : "", s === "past" ? "grey" : s === "upcoming" ? "" : "green");
           }).join("")}</div>`
-        : `<p class="dim">No recurring events yet. Type the event name, such as Fantasy Theater, in the recurring column of its rows in the shops tab and it will show up here.</p>`) + `</div>`;
+        : `<p class="dim">No recurring events yet. Type the event name, such as Fantasy Theater, in the recurring column of its rows in the shops or popups tab and it will show up here.</p>`) + `</div>`;
     return;
   }
 
@@ -50,10 +56,12 @@ Promise.all([unitValues(), get("shops"), get("events").catch(() => ({ events: []
   document.title = ev.name + " - Mira’s KS Value Guide";
   document.querySelector("h1").textContent = ev.name;
   document.querySelector(".eyebrow").innerHTML = `<a href="recurring.html">Recurring event shops</a> / ${esc(ev.name)}`;
-  document.querySelector(".sub").innerHTML = `Currency shop for this event, valued at regular pack prices.` +
+  document.querySelector(".sub").innerHTML = (ev.packs.length ? `Currency shop and pop-up packs for this event` : `Currency shop for this event`) + `, valued at regular pack prices.` +
     (md ? ` <span class="pill ${st.state === "past" ? "grey" : st.state === "upcoming" ? "amber" : "green"}">${st.label}</span>` : "");
-  body.innerHTML = `<div id="shops"></div>
-    <p class="note">With tiers kept separate, each tier is ranked on its own and "% of best" compares items to the best $ per token in that tier. Ranking all tiers together compares every item across every tier. Worth is the value of the whole purchase (Qty times the item's baseline). Items with no pack price are unpriced.</p>`;
+  body.innerHTML = `<div id="packs"></div>${ev.packs.length && ev.shops.length ? `<h2 class="section-label">Currency shop</h2>` : ""}<div id="shops"></div>
+    <p class="note">${ev.packs.length ? "Pack worth is what the same contents cost at regular pack rates. " : ""}With tiers kept separate, each tier is ranked on its own and "% of best" compares items to the best $ per token in that tier. Ranking all tiers together compares every item across every tier. Worth is the value of the whole purchase (Qty times the item's baseline). Items with no pack price are unpriced.</p>`;
+  if (ev.packs.length)
+    render(document.getElementById("packs"), packCols, ev.packs, false, ["Pop-up packs", "Click a pack to see what is inside."], ["ratio", -1], packDetail);
   const shopsEl = document.getElementById("shops");
   const views = ev.shops.map(s => {
     const sec = document.createElement("details");
@@ -63,9 +71,13 @@ Promise.all([unitValues(), get("shops"), get("events").catch(() => ({ events: []
     return renderShop(sec.querySelector(".shop-table"), m, s);
   });
   stats([
-    ["Currency shops", views.length, "bag", ""],
-    ["Tiers", views.reduce((a, v) => a + v.tiers, 0), "bars", "pink"],
-    ["Best currency value", views.length ? fmt(Math.max(...views.map(v => v.best)), 6) : "none yet", "gem", "peach"]
+    ...(ev.packs.length ? [
+      ["Pop-up packs", ev.packs.length, "gift", ""],
+      ["Best pack ratio", Math.max(...ev.packs.map(p => p.ratio)).toFixed(2) + "x", "bars", "pink"]
+    ] : []),
+    ["Currency shops", views.length, "bag", ev.packs.length ? "peach" : ""],
+    ...(ev.packs.length ? [] : [["Tiers", views.reduce((a, v) => a + v.tiers, 0), "bars", "pink"]]),
+    ["Best currency value", views.length ? fmt(Math.max(...views.map(v => v.best)), 6) : "none yet", "gem", ev.packs.length ? "" : "peach"]
   ]);
 });
 </script></body></html>
