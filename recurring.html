@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Recurring event shops - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"></head>
+<title>Recurring events - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="theme.css"></head>
 <body><main><div id="body"></div></main>
 <script src="config.js"></script>
 <script src="app.js"></script>
@@ -49,13 +49,13 @@ Promise.all([unitValues(), get("shops"), get("popups"), get("events").catch(() =
   const ev = events.get(want.trim().toLowerCase());
   if (!ev) {
     stats([]);
-    body.innerHTML = `<div class="card"><p>That event was not found. <a href="recurring.html">See all recurring event shops</a>.</p></div>`;
+    body.innerHTML = `<div class="card"><p>That event was not found. <a href="recurring.html">See all recurring events</a>.</p></div>`;
     return;
   }
   const md = findMeta(ev.name), st = eventStatus(md);
   document.title = ev.name + " - Mira’s KS Value Guide";
   document.querySelector("h1").textContent = ev.name;
-  document.querySelector(".eyebrow").innerHTML = `<a href="recurring.html">Recurring event shops</a> / ${esc(ev.name)}`;
+  document.querySelector(".eyebrow").innerHTML = `<a href="recurring.html">Recurring events</a> / ${esc(ev.name)}`;
   document.querySelector(".sub").innerHTML = (ev.packs.length ? `Currency shop and pop-up packs for this event` : `Currency shop for this event`) + `, valued at regular pack prices.` +
     (md ? ` <span class="pill ${st.state === "past" ? "grey" : st.state === "upcoming" ? "amber" : "green"}">${st.label}</span>` : "");
   body.innerHTML = `<div id="packs"></div>${ev.packs.length && ev.shops.length ? `<h2 class="section-label">Currency shop</h2>` : ""}<div id="shops"></div>

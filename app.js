@@ -16,11 +16,15 @@ function parseCSV(t) {
   return b.map(x => Object.fromEntries(h.map((k, i) => [k.trim().toLowerCase(), (x[i] || "").trim()])));
 }
 
-async function table(name) {
-  const url = (window.SHEETS || {})[name] || `data/${name}.csv`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`the "${name}" sheet returned ${res.status}`);
-  return parseCSV(await res.text());
+// Each sheet tab is fetched once per page, even when the page and the events panel both ask for it
+const tableCache = {};
+function table(name) {
+  return tableCache[name] ||= (async () => {
+    const url = (window.SHEETS || {})[name] || `data/${name}.csv`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`the "${name}" sheet returned ${res.status}`);
+    return parseCSV(await res.text());
+  })();
 }
 
 async function get(name) {
@@ -63,6 +67,8 @@ const ICONS = {
   repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 013-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 01-3 3H3"/>',
   star: '<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>',
   dice: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 8.5h0M15.5 8.5h0M12 12h0M8.5 15.5h0M15.5 15.5h0" stroke-width="2.6"/>',
+  cal: '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  close: '<path d="M6 6l12 12M18 6L6 18"/>',
   home: '<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>',
   go: '<path d="M5 12h14M13 6l6 6-6 6"/>'
 };
@@ -70,10 +76,11 @@ const icon = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>
 const hue = s => "c" + ([...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % 5);
 
 function header(active) {
+  document.body.classList.add("t3");
   const pages = [
     ["index.html", "Dashboard", "home", "Track what Kingshot packs, shops and events are really worth."],
     ["event.html", "Seasonal events", "star", "Holiday and limited-time events, each with its currency shop and pop-up packs."],
-    ["recurring.html", "Recurring event shops", "repeat", "Currency shops from events that come back on a rotation, ranked by dollars of value per token."],
+    ["recurring.html", "Recurring events", "repeat", "Events that come back on a rotation, with their currency shops ranked by dollars of value per token and their pop-up packs."],
     ["shops.html", "Permanent event shops", "bag", "Currency shops that are always available, ranked by dollars of value per token."],
     ["popups.html", "Pop-up packs", "gift", "How special event packs compare with the same contents at regular prices."],
     ["build.html", "Pack builder", "calc", "Type in a pack's items and price to see how it compares with regular packs."],
@@ -81,14 +88,15 @@ function header(active) {
     ["others.html", "Other Pages by Mira", "link", "More Kingshot tools I built.", true]
   ];
   const cur = pages.find(p => p[0] === active);
-  const logo = `<svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5fa8"/><stop offset="1" stop-color="#7c5ce6"/></linearGradient></defs><path d="M16 3l11 8-11 18L5 11z" fill="url(#lg)"/></svg>`;
+  const logo = `<svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l11 8-11 18L5 11z" fill="#f0553f"/><path d="M5 11h22L16 29z" fill="#ffb43a"/><path d="M16 3l5 8H11z" fill="#4fbfd8"/></svg>`;
   document.body.insertAdjacentHTML("afterbegin",
     `<aside class="side"><div class="brand">${logo}<span>Mira’s KS<small>Value Guide</small></span></div>
-    <nav aria-label="Pages">${pages.filter(p => !p[4]).map(([h, t, i]) => `<a href="${h}"${h === active ? " aria-current=page" : ""}>${icon(i)}${t}</a>`).join("")}</nav>
-    <p class="tagline">Built on #1584 pack data. May or may not be relevant to other kingdoms.</p></aside>`);
+    <nav aria-label="Pages">${pages.filter(p => !p[4]).map(([h, t, i]) => `<a href="${h}" title="${t}"${h === active ? " aria-current=page" : ""}>${icon(i)}${t}</a>`).join("")}</nav>
+    <p class="tagline">built on #1584 pack data</p></aside>`);
   document.querySelector("main").insertAdjacentHTML("afterbegin",
     `<p class="eyebrow">Mira’s KS Value Guide</p><h1>${cur[1]}</h1><p class="sub">${cur[3]}</p><div class="stats" id="stats"></div>`);
   document.querySelector("main").insertAdjacentHTML("beforeend", `<footer class="credits">made with love by <a href="https://mirakingshot.github.io/">Mira [221330479]</a></footer>`);
+  eventBell();
 }
 
 // list: [[label, value, iconKey, tone("" | "pink" | "peach")]]
@@ -310,3 +318,54 @@ function eventStatus(meta) {
   return { state: "active", label: end ? "Active until " + shortDate(end) : "Active", start, end };
 }
 const stateRank = { active: 0, upcoming: 1, past: 2 };
+
+// Top bar calendar button: badge with the number of active events, popup listing them
+function eventBell() {
+  const main = document.querySelector("main");
+  document.body.insertAdjacentHTML("beforeend", `<aside class="rpanel" aria-label="Events"><div class="rpanel-body"><p class="dim">Loading events…</p></div></aside>`);
+  main.insertAdjacentHTML("afterbegin",
+    `<div class="topbar"><span class="kd-chip">#1584 · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase()}</span>
+      <div class="bell-wrap"><button type="button" class="bell" aria-haspopup="dialog" aria-expanded="false" aria-controls="evpop" aria-label="Active events">${icon("cal")}<span class="badge" hidden></span></button>
+      <div class="evpop" id="evpop" role="dialog" aria-label="Active events" hidden><div class="evpop-head"><strong>Active events</strong><button type="button" class="evpop-x" aria-label="Close">${icon("close")}</button></div><div class="evpop-body"><p class="dim">Loading…</p></div></div></div></div>`);
+  const btn = main.querySelector(".bell"), pop = main.querySelector(".evpop"), badge = btn.querySelector(".badge");
+  const setOpen = o => { pop.hidden = !o; btn.setAttribute("aria-expanded", String(o)); if (o) pop.querySelector(".evpop-x").focus(); };
+  btn.addEventListener("click", e => { e.stopPropagation(); setOpen(pop.hidden); });
+  pop.querySelector(".evpop-x").addEventListener("click", () => { setOpen(false); btn.focus(); });
+  document.addEventListener("click", e => { if (!pop.hidden && !pop.contains(e.target)) setOpen(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !pop.hidden) { setOpen(false); btn.focus(); } });
+
+  Promise.all([get("events").catch(() => ({ events: [] })), get("shops").catch(() => ({ shops: [] })), get("popups").catch(() => ({ popups: [] }))])
+  .then(([{ events }, { shops }, { popups }]) => {
+    const k = s => (s || "").trim().toLowerCase();
+    const pageFor = name => {
+      const n = k(name), all = [...shops, ...popups];
+      if (all.some(x => k(x.recurring) === n)) return "recurring.html?e=" + encodeURIComponent(name.trim());
+      if (all.some(x => k(x.event) === n)) return "event.html?e=" + encodeURIComponent(name.trim());
+      return "";
+    };
+    const list = events.map(e => ({ ...e, st: eventStatus(e), page: pageFor(e.event) })).filter(e => e.st.state !== "past");
+    const now = list.filter(e => e.st.state === "active").sort((a, b) => (a.st.end || Infinity) - (b.st.end || Infinity));
+    const soon = list.filter(e => e.st.state === "upcoming").sort((a, b) => a.st.start - b.st.start);
+    if (now.length) { badge.textContent = now.length; badge.hidden = false; }
+    const row = e => `<li class="ev ${e.st.state}"><span class="ev-dot"></span><div class="ev-main"><strong>${esc(e.event)}</strong><span class="dim">${esc(e.st.label)}</span>
+      <span class="ev-links">${e.page ? `<a href="${e.page}">Values</a>` : ""}${e.simulator ? `<a href="${esc(e.simulator)}" target="_blank" rel="noopener">Simulator</a>` : ""}</span></div></li>`;
+    pop.querySelector(".evpop-body").innerHTML =
+      (now.length ? `<ul class="evlist">${now.map(row).join("")}</ul>` : `<p class="dim">No events running right now.</p>`) +
+      (soon.length ? `<p class="ev-sub">Coming up</p><ul class="evlist">${soon.map(row).join("")}</ul>` : "");
+
+    // Right panel (wide screens): event cards with a days-left badge
+    const day = 864e5, today = new Date();
+    const tones = ["coral", "yellow", "green", "teal", "pink"];
+    const card = (e, i) => {
+      const d = e.st.state === "active" ? (e.st.end ? Math.max(0, Math.ceil((e.st.end - today) / day)) : null) : Math.ceil((e.st.start - today) / day);
+      const kind = e.page.startsWith("recurring") ? "Recurring" : e.page ? "Seasonal" : "Event";
+      const tone = tones[i % tones.length];
+      return `<div class="ecard ${e.st.state}"><div class="ecard-top"><strong>${esc(e.event)}</strong>${d != null ? `<span class="dleft ${tone}" title="${esc(e.st.label)}">${e.st.state === "upcoming" ? "in " : ""}${d} d</span>` : ""}</div>
+        <div class="ecard-foot"><span class="ktag ${tone}">${kind}</span><span class="ecard-links">${e.page ? `<a href="${e.page}">Values</a>` : ""}${e.simulator ? `<a href="${esc(e.simulator)}" target="_blank" rel="noopener">Simulator ↗</a>` : ""}</span></div></div>`;
+    };
+    document.querySelector(".rpanel-body").innerHTML =
+      `<div class="rp-head"><h2>Happening now</h2><span class="rp-count">${now.length}</span></div>` +
+      (now.length ? now.map(card).join("") : `<p class="dim">No events running right now.</p>`) +
+      (soon.length ? `<div class="rp-head"><h2>Coming up</h2><span class="rp-count soft">${soon.length}</span></div>${soon.map((e, i) => card(e, i + now.length)).join("")}` : "");
+  });
+}

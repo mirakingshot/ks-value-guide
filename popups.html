@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pop-up packs - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"></head>
+<title>Pop-up packs - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="theme.css"></head>
 <body><main><div id="t"></div>
 <p class="note">Pack worth = what the same contents cost at regular pack rates. Ratio above 1.00x means better than regular packs. Great is 1.25x or more, fair is 0.90x to 1.25x, poor is under 0.90x. If an item has no pack price, it is left out and the row is marked partial, so the real ratio is higher.</p></main>
 <script src="config.js"></script>
@@ -15,7 +15,7 @@ Promise.all([unitValues(), get("popups")]).then(([m, { popups: all }]) => {
     ["Great deals", rows.filter(r => r.ratio >= 1.25).length, "gem", "peach"]
   ]);
   if (!rows.length) {
-    document.getElementById("t").innerHTML = `<div class="card"><h2>Pop-up packs</h2><p class="dim">No general pop-up packs yet. Packs that belong to an event are on their <a href="event.html">Seasonal events</a> or <a href="recurring.html">Recurring event shops</a> page.</p></div>`;
+    document.getElementById("t").innerHTML = `<div class="card"><h2>Pop-up packs</h2><p class="dim">No general pop-up packs yet. Packs that belong to an event are on their <a href="event.html">Seasonal events</a> or <a href="recurring.html">Recurring events</a> page.</p></div>`;
     return;
   }
   render(document.getElementById("t"), packCols, rows, false, ["Pop-up packs", "Compared with the same contents at regular pack prices. Click a pack to see what is inside."], undefined, packDetail);

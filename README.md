@@ -24,10 +24,13 @@ Add an optional `events` tab with the columns `event, start, end` (dates like 20
 ## Event simulators
 To show a simulator tile on the dashboard, add a `simulator` column to the `events` tab and put the simulator's link in that event's row. Active and upcoming events with a link each get a tile (titled "<event> simulator") with their date tag; ended events drop off automatically. An optional `simulator description` column replaces the default tile text. When no current event has a simulator, a single tile links to the simulator home page.
 
+## Events panel and calendar
+Every page has a calendar button in the top corner. Its red badge counts the events in the `events` tab that are running today, and clicking it lists them (plus anything starting soon) with links to the event's values page and its simulator. On wide screens the same list also shows in a panel on the right, with days left on each event. The values link goes to the Recurring events page when the event name appears in a `recurring` column, otherwise to its Seasonal events page. The look of the site lives in `theme.css`, layered on top of `style.css`.
+
 ## Pack builder
 `build.html` lets visitors type items from the masterlist plus a total price and see the pack's worth and ratio at baseline. It uses the `values` tab, so it needs no extra setup.
 
-## Recurring event shops
+## Recurring events
 Recurring events come back on a rotation (like Fantasy Theater). Put the event name in the `recurring` column of each of its shop rows (and of any pop-up packs in the popups tab that belong to it) and the shop moves from the Permanent event shops page to `recurring.html?e=Fantasy%20Theater`; `recurring.html` with no event shows a tile per recurring event. Use `tier` (for example Tier 1, Tier 2) when the shop sells the same items at different token costs, and `qty` when a purchase gives more than 1. A row in the `events` tab with the same name is optional and shows the current run's dates on the tile.
 
 Example rows:

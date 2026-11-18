@@ -1,13 +1,11 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"></head>
+<title>Dashboard - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="theme.css"></head>
 <body class="dash"><main>
-<div class="dash-grid"><div class="dash-main">
-<div class="card"><div class="card-head"><div><h2>Special event pack valuations</h2><p>Jump straight to the valuation for a limited-time pack.</p></div></div><div class="link-list wide" id="featured"></div></div>
-<div class="card"><div class="card-head"><div><h2>Event simulators</h2><p>For chance-based events running now. See what you would likely need to spend to reach your goal, and whether it is worth it.</p></div></div><div class="link-list wide" id="sims"></div></div>
+<div class="dash-top"><div class="dash-main">
+<div class="card"><div class="card-head"><div><h2>Special event shop/pack valuations</h2><p>Jump straight to the valuation for a limited-time pack.</p></div></div><div class="link-list wide" id="featured"></div></div>
+<div class="card"><div class="card-head"><div><h2>Event simulators</h2><p>For chance-based events running now. See what you would likely need to spend to reach your goal, and how it stacks up against normal pack prices.</p></div></div><div class="link-list wide" id="sims"></div></div>
+</div><aside class="about-card card"><div class="about-art" aria-hidden="true"><i class="cf c1"></i><i class="cf c2"></i><i class="cf c3"></i><i class="cf c4"></i><i class="cf c5"></i><svg viewBox="0 0 32 32"><path d="M16 3l11 8-11 18L5 11z" fill="#f0553f"/><path d="M5 11h22L16 29z" fill="#ffb43a"/><path d="M16 3l5 8H11z" fill="#4fbfd8"/></svg></div><p class="about-kicker">About this guide</p><h2>What is it really worth?</h2><p>The purpose of this valuation guide is to help give a realistic reference to point to when special packs are a good deal and what items are most valuable in currency shops. The baseline value of items is determined by the most readily available and recurring packs for those items. For example, the baseline value for Truegold is determined by the value of TG in the Custom Selection recurring deal. If you are curious, the Masterlist has each item listed with its source pack associated with it.</p><p>Because item quantities in packs can vary by kingdom age, this guide likely will be off if you aren't in my kingdom range. Though, I believe it can still serve as a useful reference.</p></aside></div>
 <div class="card"><div class="card-head"><div><h2>Explore the guide</h2><p>Everything is priced from what regular packs charge.</p></div></div><div class="link-list two" id="explore"></div></div>
-</div><div class="dash-side">
-<section class="about"><h2>About this guide</h2><p>The purpose of this valuation guide is to help give a realistic reference to point to when special packs are a good deal and what items are most valuable in currency shops. The baseline value of items is determined by the most readily available and recurring packs for those items. For example, the baseline value for Truegold is determined by the value of TG in the Custom Selection recurring deal. If you are curious, the Masterlist has each item listed with its source pack associated with it.</p><p>Because item quantities in packs can vary by kingdom age, this guide likely will be off if you aren't in my kingdom range. Though, I believe it can still serve as a useful reference.</p></section>
-</div></div>
 </main>
 <script src="config.js"></script>
 <script src="app.js"></script>
@@ -48,7 +46,7 @@ Promise.all([unitValues(), get("shops"), get("popups"), get("featured").catch(()
     : `<p class="dim">No featured packs yet. Add a row to the featured tab of your sheet.</p>`;
   document.getElementById("explore").innerHTML = [
     ["event.html", "star", "Seasonal events", "Holiday events with their currency shop and packs."],
-    ["recurring.html", "repeat", "Recurring event shops", "Shops from rotating events like Fantasy Theater, tier by tier."],
+    ["recurring.html", "repeat", "Recurring events", "Rotating events like Fantasy Theater, with their shops and packs."],
     ["shops.html", "bag", "Permanent event shops", "What each shop token is worth."],
     ["popups.html", "gift", "Pop-up packs", "Every special pack versus regular prices."],
     ["build.html", "calc", "Pack builder", "Check any pack by typing in its items and price."],
