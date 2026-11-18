@@ -19,7 +19,7 @@ Then for each tab: File > Share > Publish to web > pick the tab > Comma-separate
 Tips: format number columns as plain numbers. Item names must match exactly between tabs. Items missing from values show as unpriced.
 
 ## Active and past events
-Add an optional `events` tab with the columns `event, start, end` (dates like 2026-10-25, or whatever format Google Sheets shows). The event name must match the `event` column on shops and packs. Events whose end date has passed are greyed out and listed last, still clickable, with an "Ended" label. Events with a future start show "Starts ...". An event with no row is treated as active. Publish the tab as CSV and paste the link into `config.js` on the `events` line.
+Add an optional `events` tab with the columns `event, start, end` (dates like 2026-10-25, or whatever format Google Sheets shows). Dates follow the game's UTC reset: an event starts at 00:00 UTC on its start date and ends at 23:59 UTC on its end date. The event name must match the `event` column on shops and packs. Events whose end date has passed are greyed out and listed last, still clickable, with an "Ended" label. Events with a future start show "Starts ...". An event with no row is treated as active. Publish the tab as CSV and paste the link into `config.js` on the `events` line.
 
 ## Event simulators
 To show a simulator tile on the dashboard, add a `simulator` column to the `events` tab and put the simulator's link in that event's row. Active and upcoming events with a link each get a tile (titled "<event> simulator") with their date tag; ended events drop off automatically. An optional `simulator description` column replaces the default tile text. When no current event has a simulator, a single tile links to the simulator home page.

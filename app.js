@@ -299,15 +299,16 @@ function renderShop(el, m, s) {
   return summary;
 }
 
+// Event dates follow the game's UTC reset: a start date begins at 00:00 UTC, an end date runs until 23:59 UTC
 function parseDate(v, endOfDay) {
   if (!v) return null;
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(v.trim());
-  const d = iso ? new Date(+iso[1], +iso[2] - 1, +iso[3]) : new Date(v);
-  if (isNaN(d)) return null;
-  if (endOfDay) d.setHours(23, 59, 59, 999);
-  return d;
+  const p = iso ? null : new Date(v);
+  if (p && isNaN(p)) return null;
+  const [y, m, day] = iso ? [+iso[1], +iso[2] - 1, +iso[3]] : [p.getFullYear(), p.getMonth(), p.getDate()];
+  return new Date(endOfDay ? Date.UTC(y, m, day, 23, 59, 59, 999) : Date.UTC(y, m, day));
 }
-const shortDate = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const shortDate = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
 // meta: a row from the events tab (or undefined). Returns {state: active|upcoming|past, label, start, end}
 function eventStatus(meta) {
@@ -324,7 +325,7 @@ function eventBell() {
   const main = document.querySelector("main");
   document.body.insertAdjacentHTML("beforeend", `<aside class="rpanel" aria-label="Events"><div class="rpanel-body"><p class="dim">Loading events…</p></div></aside>`);
   main.insertAdjacentHTML("afterbegin",
-    `<div class="topbar"><span class="kd-chip">#1584 · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase()}</span>
+    `<div class="topbar"><span class="kd-chip">#1584 · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).toUpperCase()} UTC</span>
       <div class="bell-wrap"><button type="button" class="bell" aria-haspopup="dialog" aria-expanded="false" aria-controls="evpop" aria-label="Active events">${icon("cal")}<span class="badge" hidden></span></button>
       <div class="evpop" id="evpop" role="dialog" aria-label="Active events" hidden><div class="evpop-head"><strong>Active events</strong><button type="button" class="evpop-x" aria-label="Close">${icon("close")}</button></div><div class="evpop-body"><p class="dim">Loading…</p></div></div></div></div>`);
   const btn = main.querySelector(".bell"), pop = main.querySelector(".evpop"), badge = btn.querySelector(".badge");

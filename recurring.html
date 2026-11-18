@@ -24,7 +24,9 @@ Promise.all([unitValues(), get("shops"), get("popups"), get("events").catch(() =
     // Dates are optional: a recurring event with a row in the events tab shows its current run, otherwise no tag
     const list = [...events.values()].map((e, i) => ({ ...e, i, md: findMeta(e.name) }))
       .map(e => ({ ...e, st: eventStatus(e.md) }))
-      .sort((a, b) => stateRank[a.st.state] - stateRank[b.st.state] || a.i - b.i);
+      // Order: running now (dated), upcoming, no dates in the events tab, ended
+      .map(e => ({ ...e, rank: !e.md ? 2 : e.st.state === "active" ? 0 : e.st.state === "upcoming" ? 1 : 3 }))
+      .sort((a, b) => a.rank - b.rank || (a.rank === 1 ? a.st.start - b.st.start : 0) || a.i - b.i);
     stats([
       ["Recurring events", list.length, "repeat", ""],
       ["Currency shops", list.reduce((a, e) => a + e.shops.length, 0), "bag", "pink"],
