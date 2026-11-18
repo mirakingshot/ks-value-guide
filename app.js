@@ -323,7 +323,6 @@ const stateRank = { active: 0, upcoming: 1, past: 2 };
 // Top bar calendar button: badge with the number of active events, popup listing them
 function eventBell() {
   const main = document.querySelector("main");
-  document.body.insertAdjacentHTML("beforeend", `<aside class="rpanel" aria-label="Events"><div class="rpanel-body"><p class="dim">Loading events…</p></div></aside>`);
   main.insertAdjacentHTML("afterbegin",
     `<div class="topbar"><span class="kd-chip">#1584 · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).toUpperCase()} UTC</span>
       <div class="bell-wrap"><button type="button" class="bell" aria-haspopup="dialog" aria-expanded="false" aria-controls="evpop" aria-label="Active events">${icon("cal")}<span class="badge" hidden></span></button>
@@ -353,20 +352,5 @@ function eventBell() {
     pop.querySelector(".evpop-body").innerHTML =
       (now.length ? `<ul class="evlist">${now.map(row).join("")}</ul>` : `<p class="dim">No events running right now.</p>`) +
       (soon.length ? `<p class="ev-sub">Coming up</p><ul class="evlist">${soon.map(row).join("")}</ul>` : "");
-
-    // Right panel (wide screens): event cards with a days-left badge
-    const day = 864e5, today = new Date();
-    const tones = ["coral", "yellow", "green", "teal", "pink"];
-    const card = (e, i) => {
-      const d = e.st.state === "active" ? (e.st.end ? Math.max(0, Math.ceil((e.st.end - today) / day)) : null) : Math.ceil((e.st.start - today) / day);
-      const kind = e.page.startsWith("recurring") ? "Recurring" : e.page ? "Seasonal" : "Event";
-      const tone = tones[i % tones.length];
-      return `<div class="ecard ${e.st.state}"><div class="ecard-top"><strong>${esc(e.event)}</strong>${d != null ? `<span class="dleft ${tone}" title="${esc(e.st.label)}">${e.st.state === "upcoming" ? "in " : ""}${d} d</span>` : ""}</div>
-        <div class="ecard-foot"><span class="ktag ${tone}">${kind}</span><span class="ecard-links">${e.page ? `<a href="${e.page}">Values</a>` : ""}${e.simulator ? `<a href="${esc(e.simulator)}" target="_blank" rel="noopener">Simulator ↗</a>` : ""}</span></div></div>`;
-    };
-    document.querySelector(".rpanel-body").innerHTML =
-      `<div class="rp-head"><h2>Happening now</h2><span class="rp-count">${now.length}</span></div>` +
-      (now.length ? now.map(card).join("") : `<p class="dim">No events running right now.</p>`) +
-      (soon.length ? `<div class="rp-head"><h2>Coming up</h2><span class="rp-count soft">${soon.length}</span></div>${soon.map((e, i) => card(e, i + now.length)).join("")}` : "");
   });
 }

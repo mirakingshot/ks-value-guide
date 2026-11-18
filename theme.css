@@ -1,4 +1,4 @@
-/* Theme: warm beige workspace, white cards and right panel, playful coral / teal / pink / green / yellow accents */
+/* Theme: warm beige workspace, white cards, playful coral / teal / pink / green / yellow accents */
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap");
 :root{--ink:#272a37;--title:#272a37;--mute:#9b98a1;--line:#ece7de;--head:#f7f4ef;--hover:#fbf9f5;--violet:#f0553f;
   --beige:#f4f0e9;--coral:#f0553f;--teal:#4fbfd8;--pink:#ff8ab5;--green:#3fcf9a;--yellow:#ffb43a;
@@ -19,12 +19,6 @@ body.t3{background:#e7e2d9;font-family:Outfit,system-ui,sans-serif;font-size:14.
 .t3 nav a:hover{background:#fff}
 .t3 nav a[aria-current]{background:var(--coral);color:#fff;box-shadow:0 8px 18px rgba(240,85,63,.35)}
 .t3 .tagline{display:none}
-}
-.rpanel{display:none}
-@media(min-width:1360px){
-.t3 main{margin-right:24px;padding-right:350px}
-.rpanel{display:block;position:fixed;top:24px;right:24px;bottom:24px;width:310px;overflow-y:auto;background:#fff;border-radius:30px;padding:28px 26px;box-shadow:-10px 0 40px rgba(90,70,40,.06);z-index:4}
-.t3 .topbar{right:374px}
 }
 
 /* Top bar */
@@ -54,28 +48,10 @@ body.t3{background:#e7e2d9;font-family:Outfit,system-ui,sans-serif;font-size:14.
 .ev-main strong{font-size:.92rem;font-weight:600}
 .ev-main .dim{font-size:.78rem}
 .ev-links{display:flex;gap:8px;margin-top:6px}
-.ev-links a,.ecard-links a{font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;color:var(--ink)}
+.ev-links a{font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;color:var(--ink)}
 .ev-links a{padding:4px 11px;border-radius:999px;background:var(--head)}
-.ev-links a:hover,.ecard-links a:hover{color:var(--coral)}
+.ev-links a:hover{color:var(--coral)}
 .ev-sub{margin:10px 0 0;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
-
-/* Right panel cards (like "tasks today") */
-.rp-head{display:flex;align-items:center;justify-content:space-between;margin:4px 0 14px}
-.rp-head:not(:first-child){margin-top:30px}
-.rp-head h2{margin:0;font-size:1.15rem;font-weight:700}
-.rp-count{min-width:26px;height:26px;padding:0 8px;border-radius:999px;display:grid;place-items:center;background:var(--coral);color:#fff;font-size:.78rem;font-weight:700}
-.rp-count.soft{background:var(--head);color:var(--mute)}
-.ecard{border:1px solid var(--line);border-radius:18px;padding:16px 16px 14px;margin-bottom:14px;transition:box-shadow .15s}
-.ecard:hover{box-shadow:var(--soft)}
-.ecard.upcoming{opacity:.75}
-.ecard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.ecard-top strong{font-size:.98rem;font-weight:600;line-height:1.3}
-.dleft{flex:none;font-size:.7rem;font-weight:700;color:#fff;border-radius:999px;padding:3px 9px;background:var(--coral)}
-.dleft.yellow{background:var(--yellow)}.dleft.green{background:var(--green)}.dleft.teal{background:var(--teal)}.dleft.pink{background:var(--pink)}
-.ecard-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:18px}
-.ecard-links{display:flex;gap:12px}
-.ktag{font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:5px 12px;border-radius:999px;background:var(--coral-s);color:var(--coral-i)}
-.ktag.yellow{background:var(--yellow-s);color:var(--yellow-i)}.ktag.green{background:var(--green-s);color:var(--green-i)}.ktag.teal{background:var(--teal-s);color:var(--teal-i)}.ktag.pink{background:var(--pink-s);color:var(--pink-i)}
 
 /* Headings */
 .t3 .eyebrow{font-size:.85rem;color:var(--mute)}
