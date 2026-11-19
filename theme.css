@@ -128,10 +128,10 @@ body.t3{background:#e7e2d9;font-family:Outfit,system-ui,sans-serif;font-size:14.
 .t3 th,.t3 td{padding:12px 12px}
 .t3 table.rt td:first-child{white-space:normal;min-width:150px}
 
-/* Sidebar with labels */
+/* Sidebar with labels. On very wide screens the frame stops at 1600px and centres, and the fixed sidebar follows its left edge */
 @media(min-width:861px){
-.t3 main{padding-left:250px}
-.t3 .side{width:196px;align-items:stretch;inset:48px auto 48px 46px}
+.t3 main{padding-left:250px;margin:24px max(24px,calc(50% - 800px))}
+.t3 .side{width:196px;align-items:stretch;inset:48px auto 48px max(46px,calc(50% - 778px))}
 .t3 .brand{padding:0 6px 40px}.t3 .brand>span{display:block;font-weight:700;font-size:1.02rem}
 .t3 nav{align-items:stretch;gap:6px}
 .t3 nav a{width:auto;height:auto;justify-content:flex-start;gap:12px;padding:10px 14px;border-radius:14px;font-size:.92rem;font-weight:500;color:#6f6c76}
