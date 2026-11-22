@@ -92,7 +92,8 @@ const ITEM_IMAGES = {
   "nutrient potion": "nutrientpotion",
   "pet food": "petfood",
   "1h research speed": "researchspeed",
-  "100 xp enhancement": "xpenhancement"
+  "100 xp enhancement": "xpenhancement",
+  "gen 5 custom hero widget": "gen5widget"
 };
 // Item name with its picture in front; items without one get an empty slot so names stay lined up
 function itemName(name) {
