@@ -168,3 +168,8 @@ body.t3{background:#e7e2d9;font-family:Outfit,system-ui,sans-serif;font-size:14.
 .cf.c5{width:9px;height:9px;background:var(--coral);border-radius:50%}
 @media(max-width:860px){.t3 nav a[aria-current]{background:var(--coral);color:#fff}.t3 nav a:hover{background:var(--head)}}
 @media(max-width:640px){.t3 table.rt tbody tr.top{background:var(--head);box-shadow:inset 4px 0 0 var(--coral)}.t3 .stat strong,.t3.dash .stat strong{font-size:1.1rem}.t3 .stat,.t3.dash .stat,.t3.dash .stat:first-child{padding:14px}}
+
+/* Item pictures beside item names */
+.item-name{display:inline-flex;align-items:center;gap:10px;vertical-align:middle}
+.item-img{flex:none;width:28px;height:28px;object-fit:contain}
+.breakdown .item-img{width:22px;height:22px}

@@ -56,6 +56,50 @@ async function unitValues() {
   return m;
 }
 
+// Item pictures in images/: item name as written in the sheets (any case) -> file name without .png
+const ITEM_IMAGES = {
+  "advanced taming mark": "advancedtaming",
+  "common taming mark": "commontaming",
+  "1h const. speedup": "constructionspeed",
+  "forgehammer": "forgehammer",
+  "gems": "gems",
+  "mythic general hero shard": "generalmythic",
+  "promotion medallion": "medallion",
+  "mithril": "mithril",
+  "1h training speed": "trainingspeed",
+  "5m training speed": "trainingspeed",
+  "truegold": "truegold",
+  "truegold dust": "truegolddust",
+  "charm guide": "charmguide",
+  "charm design": "charmdesign",
+  "artisans vision": "artisans",
+  "gilded threads": "threads",
+  "satin": "satin",
+  "mystery badge": "mysterybadge",
+  "masters manuscript": "mastermanuscript",
+  "elite spices": "elitespice",
+  "silver goblet": "goblet",
+  "general master emblem": "generalmasteremblem",
+  "pet adv. mats chest": "petadvmatchest",
+  "lucky hero gear chest": "luckyherochest",
+  "custom mythic hero gear chest": "custommythicherochest",
+  "1hr general speed": "generalspeed",
+  "3hr general speed": "generalspeed",
+  "gold": "gold",
+  "governor gear mats chest": "govmatschest",
+  "growth manual": "growthmanual",
+  "1h learning speed": "learningspeed",
+  "nutrient potion": "nutrientpotion",
+  "pet food": "petfood",
+  "1h research speed": "researchspeed",
+  "100 xp enhancement": "xpenhancement"
+};
+// Item name with its picture in front; items without one get an empty slot so names stay lined up
+function itemName(name) {
+  const f = ITEM_IMAGES[String(name).trim().toLowerCase()];
+  return `<span class="item-name">${f ? `<img class="item-img" src="images/${f}.png" alt="" width="28" height="28" loading="lazy">` : `<span class="item-img"></span>`}<span>${esc(name)}</span></span>`;
+}
+
 const ICONS = {
   list: '<path d="M4 6h16M4 12h16M4 18h10"/>',
   bag: '<path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8a3 3 0 016 0"/>',
@@ -180,7 +224,7 @@ function packDetail(r) {
   const unpriced = '<span class="pill amber">unpriced</span>';
   const body = r.lines.map(l => {
     const share = l.worth != null && r.worth ? l.worth / r.worth : null;
-    return `<tr><td>${esc(l.item)}</td><td>${l.qty.toLocaleString()}</td><td>${l.unit == null ? unpriced : fmt(l.unit)}</td>` +
+    return `<tr><td>${itemName(l.item)}</td><td>${l.qty.toLocaleString()}</td><td>${l.unit == null ? unpriced : fmt(l.unit)}</td>` +
       `<td>${l.worth == null ? unpriced : `<span class="strong">${fmt(l.worth, 2)}</span>`}</td>` +
       `<td>${share == null ? '<span class="dim">-</span>' : Math.round(share * 100) + `%<span class="meter" style="width:${Math.round(share * 60)}px"></span>`}</td></tr>`;
   }).join("");
@@ -243,7 +287,7 @@ function shopCols(rows, tierOrder) {
   const multi = rows.some(r => r.qty !== 1);
   const tc = tierOrder ? tierColors(tierOrder) : {};
   return [
-    { key: "item", label: "Item", text: r => `<span class="ranked"><span class="rank${r.rank ? "" : " none"}" aria-label="${r.rank ? "Rank " + r.rank : "Unranked"}">${r.rank ? "#" + r.rank : "–"}</span><span>${esc(r.item)}</span></span>` },
+    { key: "item", label: "Item", text: r => `<span class="ranked"><span class="rank${r.rank ? "" : " none"}" aria-label="${r.rank ? "Rank " + r.rank : "Unranked"}">${r.rank ? "#" + r.rank : "–"}</span>${itemName(r.item)}</span>` },
     ...(tierOrder ? [{ key: "tier", label: "Tier", sort: r => tierOrder.indexOf(r.tier), text: r => `<span class="pill ${tc[r.tier]}">${esc(r.tier || "Other")}</span>` }] : []),
     { key: "tokens", label: "Tokens", text: r => r.tokens.toLocaleString() },
     ...(multi ? [{ key: "qty", label: "Qty", text: r => r.qty.toLocaleString() }] : []),
