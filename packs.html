@@ -1,0 +1,86 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regular packs - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="theme.css"></head>
+<body><main><div id="packs"></div>
+<p class="note">Variations of the same pack (named like "Pack - Option") are grouped into one row; click it to compare the options side by side. A base pack sets the value of the items marked base in it: the item gets the dollars in its "value" column, or, when that is blank, what is left of the pack price after the pack's other items are priced. That is why base packs sit close to 1.00x. Every other pack is valued with those item values.</p></main>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+header("packs.html");
+Promise.all([unitValues(), get("packs").catch(() => ({ packs: [] }))]).then(([m, { packs }]) => {
+  const root = document.getElementById("packs");
+  if (!packs.length) {
+    stats([]);
+    root.innerHTML = `<div class="card"><h2>No regular packs yet</h2><p class="dim">Add a <strong>packs</strong> tab to the sheet with the columns pack, price, category, item, qty, base and value (one row per item), publish it as CSV and paste the link next to <code>packs</code> in config.js.</p></div>`;
+    return;
+  }
+  const scored = scorePacks(m, packs).map((r, i) => ({ ...r, group: packs[i].group }));
+  const want = new URLSearchParams(location.search).get("pack");
+
+  // Families: the "group" column if filled, otherwise the text before " - " when another pack shares it
+  const prefix = n => n.includes(" - ") ? n.slice(0, n.indexOf(" - ")).trim() : "";
+  const count = {};
+  scored.forEach(r => { const p = prefix(r.name); if (p) count[p] = (count[p] || 0) + 1; });
+  const fams = new Map();
+  scored.forEach(r => {
+    const g = r.group || (count[prefix(r.name)] > 1 ? prefix(r.name) : r.name);
+    if (!fams.has(g)) fams.set(g, { name: g, category: r.category || "Other", variants: [] });
+    const option = r.name !== g && r.name.startsWith(g) ? r.name.slice(g.length).replace(/^\s*[-–:]\s*/, "") : r.name;
+    fams.get(g).variants.push({ ...r, option: option || r.name });
+  });
+  const rows = [...fams.values()].map(f => {
+    const prices = f.variants.map(v => v.price).filter(isFinite);
+    const base = [...new Set(f.variants.flatMap(v => v.lines.filter(l => l.base).map(l => l.item)))];
+    const items = [...new Set(f.variants.flatMap(v => v.lines.map(l => l.item)))];
+    return { ...f, base, items, lo: Math.min(...prices), hi: Math.max(...prices), best: Math.max(...f.variants.map(v => v.ratio || 0)),
+      find: [f.name, ...f.variants.map(v => v.name), ...items].join(" | ").toLowerCase() };
+  });
+
+  const money = n => "$" + n.toFixed(2);
+  const chips = list => list.map(l => `<span class="ct">${itemImg(l.item) ? `<img src="${itemImg(l.item)}" alt="" width="20" height="20" loading="lazy">` : ""}<b>${l.qty.toLocaleString()}</b> ${esc(l.item)}${l.base ? ' <span class="pill green">base</span>' : ""}</span>`).join("");
+  // Expanded row: one pack shows its full breakdown; a family shows its options side by side
+  const famDetail = f => f.variants.length === 1 ? packDetail(f.variants[0]) :
+    `<div class="breakdown"><table class="opts"><thead><tr><th>Option</th><th>What's inside</th><th>Price</th><th>Worth</th><th>Ratio</th></tr></thead><tbody>` +
+    f.variants.map(v => `<tr${v.ratio === f.best && f.variants.some(x => x.ratio < f.best) ? ' class="best"' : ""}><td>${esc(v.option)}</td><td><div class="cts">${chips(v.lines)}</div></td><td>${money(v.price)}</td>` +
+      `<td>${fmt(v.worth, 2)}${v.missing.length ? ` <span class="dim" title="Unpriced: ${esc(v.missing.join(", "))}">(partial)</span>` : ""}</td><td><span class="strong">${v.ratio.toFixed(2)}x</span></td></tr>`).join("") +
+    `</tbody></table></div>`;
+
+  const cols = [
+    { key: "find", label: "Pack", sort: r => r.name.toLowerCase(), text: r => `<span class="stack"><span>${esc(r.name)}</span>${r.variants.length > 1 ? `<span class="dim">${r.variants.length} options</span>` : ""}</span>` },
+    { key: "category", label: "Category", text: r => `<span class="pill ${hue(r.category)}">${esc(r.category)}</span>` },
+    { key: "lo", label: "Price", text: r => r.lo === r.hi ? money(r.lo) : `${money(r.lo)} – ${money(r.hi)}` },
+    { key: "best", label: "Best ratio", text: r => `<span class="strong">${r.best.toFixed(2)}x</span>` },
+    { key: "base", label: "Base for", wide: true, sort: r => r.base.length || null, text: r => r.base.length ? `<span class="pills">${r.base.map(i => `<span class="pill green">${esc(i)}</span>`).join("")}</span>` : '<span class="dim">-</span>' }
+  ];
+
+  // Category filter chips above one searchable table
+  const cats = [...new Set(rows.map(r => r.category))];
+  let cat = "";
+  root.innerHTML = (cats.length > 1 ? `<div class="pillbar" role="group" aria-label="Filter by category"><span class="chip-label">Show</span>` +
+    ["", ...cats].map(c => `<button type="button" class="chip" data-cat="${esc(c)}"${c === cat ? ' aria-current="true"' : ""}>${c ? esc(c) : "All"} <span class="dim">${c ? rows.filter(r => r.category === c).length : rows.length}</span></button>`).join("") + `</div>` : "") +
+    `<div id="tbl"></div>`;
+  const draw = () => {
+    const box = document.createElement("div");
+    document.getElementById("tbl").replaceChildren(box);
+    const list = cat ? rows.filter(r => r.category === cat) : rows;
+    render(box, cols, list, true, [cat || "All packs", `${list.length} pack${list.length === 1 ? "" : "s"}. Search by pack or item, and click a pack to see what is inside.`],
+      ["find", 1], famDetail, want ? r => r.variants.some(v => v.name === want) : null);
+    box.querySelector("input").placeholder = "Search packs or items";
+  };
+  root.querySelector(".pillbar")?.addEventListener("click", e => {
+    const b = e.target.closest("button[data-cat]");
+    if (!b) return;
+    cat = b.dataset.cat;
+    root.querySelectorAll(".pillbar .chip").forEach(c => c === b ? c.setAttribute("aria-current", "true") : c.removeAttribute("aria-current"));
+    draw();
+  });
+  draw();
+  // Opened from the Masterlist or Item finder: scroll to that pack
+  if (want) root.querySelector('.chev[aria-expanded="true"]')?.closest("tr").scrollIntoView({ block: "center" });
+
+  stats([
+    ["Packs", scored.length, "box", ""],
+    ["Pack families", rows.filter(r => r.variants.length > 1).length, "list", "pink"],
+    ["Items valued by a base pack", Object.values(m).filter(v => v.pack).length, "gem", "peach"]
+  ]);
+});
+</script></body></html>

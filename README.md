@@ -12,7 +12,8 @@ Import `data/values.csv`, `data/shops.csv`, `data/popups.csv`, `data/featured.cs
 - **values**: item, qty, usd, source, superseded. Unit value = usd / qty. Put TRUE in superseded to ignore a line.
 - **shops**: shop, item, tokens, plus optional event, recurring, qty, tier. One row per shop item. A new shop name starts a new table. `qty` is how many units one purchase gives (blank means 1); when any item in a table has a qty other than 1, a Qty column appears and value per token uses the whole purchase. `tier` splits a shop into separate tables on the same page, one per tier, in the order the tiers first appear (repeat the items on new rows for each tier with that tier's token cost). Ranks and "% of best" are worked out within each tier.
 - **featured**: title, description, url, badge (optional `event` column too). If the url is an event page (event.html?e=Halloween) or the `event` column names an event with dates in the `events` tab, the button shows its active, upcoming or ended tag, and ended events are greyed and listed last. Each row becomes a big button on the dashboard under Special event pack valuations. url can be a page in this site (popups.html) or a full link; badge is optional (e.g. Ends Nov 7).
-- **popups**: pack, price, limit, item, qty, plus optional event or recurring. One row per item in the pack; repeat the pack name and price on each row. A pack with a `recurring` event name shows on that recurring event's page instead of the Pop-up packs page.
+- **packs** (optional): regular packs, see [Regular packs and base values](#regular-packs-and-base-values).
+- **popups**: pack, price, limit, item, qty, plus optional event, recurring or available. One row per item in the pack; repeat the pack name and price on each row. A pack with a `recurring` event name shows on that recurring event's page instead of the Pop-up packs page.
 
 Then for each tab: File > Share > Publish to web > pick the tab > Comma-separated values (.csv) > Publish. Paste each link into `config.js` and commit once. After that, editing cells updates the site (Google refreshes published sheets every few minutes).
 
@@ -26,6 +27,33 @@ To show a simulator tile on the dashboard, add a `simulator` column to the `even
 
 ## Events calendar
 Every page has a calendar button in the top corner. Its red badge counts the events in the `events` tab that are running today, and clicking it lists them (plus anything starting soon) with links to the event's values page and its simulator. The values link goes to the Recurring events page when the event name appears in a `recurring` column, otherwise to its Seasonal events page. The look of the site lives in `theme.css`, layered on top of `style.css`.
+
+## Regular packs and base values
+Add a `packs` tab with the columns `pack, price, category, item, qty, base, value`, one row per item like the popups tab (repeat the pack name, price and category on each row). `packs.html` lists every pack in one searchable table (search by pack or item name) with category filter buttons above it.
+
+Variations of the same pack are grouped into one row. Name them `Pack - Option` (for example `Common Custom Pet Chest - Pet Food`): packs sharing the text before " - " become one row showing the number of options, the price range and the best ratio, and clicking it compares the options side by side with their contents. To group packs whose names don't follow that pattern, add an optional `group` column and give them the same text there. A pack on its own expands to its full breakdown.
+
+A row with a `value` but no x in `base` (like an "Other" row for filler) counts as exactly that many dollars, both in the pack's worth and when working out what is left for a blank base row. It stays out of the Item finder's search list.
+
+Put an x in `base` on the row whose pack sets that item's value. The item's value then comes from that pack instead of the `values` tab:
+- `value` filled in: the item is worth that many dollars for that row's qty (the same number you would put in `usd` on the values tab).
+- `value` blank: the item gets what is left of the pack price after the pack's other items are priced. If several rows in one pack are base with a blank value, they split what is left evenly in dollars.
+
+Mark each item as base in one pack only. Items with no base row keep their `values` tab value, so breakdowns and conversion rates (like Truegold Dust) can stay there. If a pack's other items can't all be priced, its blank base rows fall back to the values tab too. On the Masterlist, an item's source links to its base pack.
+
+Example rows:
+
+    pack,price,category,item,qty,base,value
+    Custom Selection,4.99,Custom packs,Truegold,40,x,2.86
+    Custom Selection,4.99,Custom packs,1hr General Speed,20,x,
+    Custom Selection,4.99,Custom packs,Gems,1000,,
+
+## Item finder
+`finder.html` lets visitors pick an item and see, for that item:
+- every regular pack, plus every pack on sale right now, ranked by ratio, with the item's share of each pack's worth;
+- every shop open right now that sells it, ranked by "% of best" within its shop or tier.
+
+Event and recurring packs and shops count only while their event is active in the `events` tab. A pop-up pack with no event counts when its row has an x in an optional `available` column in the popups tab. Permanent shops always count. The page can be linked to a specific item with `finder.html?item=Truegold`.
 
 ## Pack builder
 `build.html` lets visitors type items from the masterlist plus a total price and see the pack's worth and ratio at baseline. It uses the `values` tab, so it needs no extra setup.

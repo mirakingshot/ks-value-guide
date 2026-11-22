@@ -7,7 +7,7 @@
 <script>
 header("masterlist.html");
 unitValues().then(m => {
-  const rows = Object.entries(m).map(([item, v]) => ({ item, unit: v.unit, source: v.source }));
+  const rows = Object.entries(m).map(([item, v]) => ({ item, unit: v.unit, source: v.source, pack: v.pack }));
   stats([
     ["Items valued", rows.length, "list", ""],
     ["Source packs", new Set(rows.map(r => r.source)).size, "gift", "pink"],
@@ -15,7 +15,9 @@ unitValues().then(m => {
   ]);
   render(document.getElementById("t"), [
     { key: "item", label: "Item", text: r => itemName(r.item) },
-    { key: "source", label: "Source", wide: true, text: r => `<span class="pill ${hue(r.source)}">${r.source}</span>` },
+    { key: "source", label: "Source", wide: true, text: r => r.pack
+      ? `<a class="pill ${hue(r.source)}" href="packs.html?pack=${encodeURIComponent(r.pack)}" title="See this base pack">${esc(r.source)}</a>`
+      : `<span class="pill ${hue(r.source)}">${esc(r.source)}</span>` },
     { key: "unit", label: "Baseline", hero: true, text: r => `<span class="strong">${fmt(r.unit)}</span>` }
   ], rows, true, ["Item values", "Based on what regular packs charge for each item"]);
 });

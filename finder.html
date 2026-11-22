@@ -1,0 +1,110 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Item finder - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="theme.css"></head>
+<body><main>
+<div class="card finder-search"><label for="q"><h2>Which item are you after?</h2></label>
+<p>Searches every regular pack, the packs and shops of events running now, and the permanent event shops.</p>
+<input type="search" id="q" list="items" placeholder="Start typing an item, e.g. Truegold" autocomplete="off"><datalist id="items"></datalist>
+<div class="quick" id="quick"></div></div>
+<div id="result"></div>
+<p class="note">Packs are ranked by ratio: what everything inside is worth at regular pack rates, divided by the price. "Item share" is how much of that worth comes from the item you picked, so a high ratio with a small share means the deal is mostly other things. Shops are ranked by "% of best": how close the item comes to the best $ per token in that shop (or that tier of it), since tokens from different shops can't be compared directly. Event packs and shops only count while their event is running in the events tab; a pop-up with no event counts when its "available" column is marked.</p></main>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+header("finder.html");
+Promise.all([unitValues(), get("packs").catch(() => ({ packs: [] })), get("popups"), get("shops"), get("events").catch(() => ({ events: [] }))])
+.then(([m, { packs }, { popups }, { shops }, { events: meta }]) => {
+  const k = s => String(s || "").trim().toLowerCase();
+  const evMeta = name => meta.find(x => k(x.event) === k(name));
+  const running = name => { const md = evMeta(name); return !!md && eventStatus(md).state === "active"; };
+  const evPage = p => p.recurring ? "recurring.html?e=" + encodeURIComponent(p.recurring) : "event.html?e=" + encodeURIComponent(p.event);
+
+  // What is on sale right now
+  const regular = scorePacks(m, packs).map(p => ({ ...p, where: "Regular pack", href: "packs.html?pack=" + encodeURIComponent(p.name) }));
+  const livePopups = scorePacks(m, popups.filter(p => p.event || p.recurring ? running(p.event || p.recurring) : p.available))
+    .map(p => ({ ...p, where: p.event || p.recurring || "Pop-up", href: p.event || p.recurring ? evPage(p) : "popups.html" }));
+  const allPacks = [...regular, ...livePopups];
+  const liveShops = shops.filter(s => s.event || s.recurring ? running(s.event || s.recurring) : true)
+    .map(s => ({ ...s, where: s.event || s.recurring || "Permanent shop", href: s.event || s.recurring ? evPage(s) : "shops.html#" + slug(s.name) }));
+
+  // Every item name the guide knows, for the search suggestions
+  const names = new Map(), seen = {};
+  // Rows with a fixed value and no base mark (like "Other") are filler, not items to search for
+  const inStock = [...packs.flatMap(p => p.contents.filter(c => c.base || !isFinite(c.value)).map(c => c.item)), ...popups.flatMap(p => p.contents.map(c => c.item)), ...shops.flatMap(s => s.items.map(x => x.item))];
+  inStock.forEach(n => (seen[k(n)] = (seen[k(n)] || 0) + 1));
+  [...Object.keys(m), ...inStock].forEach(n => { if (n && !names.has(k(n))) names.set(k(n), n.trim()); });
+  const sorted = [...names.values()].sort((a, b) => a.localeCompare(b));
+  document.getElementById("items").innerHTML = sorted.map(n => `<option value="${esc(n)}"></option>`).join("");
+  // Quick picks: the priced items with a picture that turn up in the most packs and shops
+  document.getElementById("quick").innerHTML = `<span class="chip-label">Quick picks</span>` +
+    sorted.filter(n => itemImg(n) && m[n]).sort((a, b) => (seen[k(b)] || 0) - (seen[k(a)] || 0)).slice(0, 10)
+      .map(n => `<button type="button" class="chip" data-item="${esc(n)}">${itemName(n)}</button>`).join("");
+
+  stats([
+    ["Packs on sale", allPacks.length, "box", ""],
+    ["Shops open", liveShops.length, "bag", "pink"],
+    ["Items to search", names.size, "search", "peach"]
+  ]);
+
+  const input = document.getElementById("q"), out = document.getElementById("result");
+  const pctCell = p => p == null ? `<span class="pill amber">unpriced</span>` : `${Math.round(p * 100)}%<span class="meter" style="width:${Math.round(Math.min(p, 1) * 60)}px"></span>`;
+
+  function show(item) {
+    const v = m[item];
+    history.replaceState(null, "", "?item=" + encodeURIComponent(item));
+    document.title = item + " - Item finder - Mira’s KS Value Guide";
+    const img = itemImg(item);
+
+    // Packs that contain the item, best ratio first
+    const packRows = allPacks.map(p => {
+      const l = p.lines.find(l => k(l.item) === k(item));
+      return l && { ...p, qty: l.qty, share: l.worth != null && p.worth ? l.worth / p.worth : null };
+    }).filter(Boolean);
+    const topRatio = Math.max(0, ...packRows.map(r => r.ratio || 0));
+    packRows.forEach(r => (r.rowCls = r.ratio && r.ratio === topRatio ? "top" : ""));
+
+    // Shops that sell it, ranked within the shop's own tier like the shop pages
+    const shopRows = liveShops.flatMap(s => shopTiers(s).flatMap(g => {
+      const view = shopView(m, { ...s, items: g.items });
+      const ranked = view.rows.filter(r => r.rank).length;
+      return view.rows.filter(r => k(r.item) === k(item)).map(r => ({ ...r, shop: s.name, where: s.where, href: s.href, of: ranked }));
+    }));
+    const topPct = Math.max(0, ...shopRows.map(r => r.pct || 0));
+    shopRows.forEach(r => (r.rowCls = r.pct && r.pct === topPct ? "top" : ""));
+
+    out.innerHTML = `<div class="card item-head">${img ? `<img src="${img}" alt="" width="64" height="64">` : ""}<div>
+        <h2>${esc(item)}</h2>
+        <p>${v ? `Worth <strong>${fmt(v.unit)}</strong> each, set by ${v.pack ? `<a href="packs.html?pack=${encodeURIComponent(v.pack)}">${esc(v.source)}</a>` : esc(v.source)}.` : "No pack price yet, so packs and shops can't be valued on this item."}</p></div></div>
+      <div id="r-packs"></div><div id="r-shops"></div>`;
+
+    if (packRows.length)
+      render(document.getElementById("r-packs"), [
+        { key: "name", label: "Pack", text: r => `<span class="stack"><span>${esc(r.name)}</span><a class="pill ${r.where === "Regular pack" ? "grey" : "green"}" href="${r.href}">${esc(r.where)}</a></span>` },
+        { key: "qty", label: "Qty", text: r => r.qty.toLocaleString() },
+        { key: "price", label: "Price", text: r => fmt(r.price, 2) },
+        { key: "share", label: "Item share", text: r => r.share == null ? '<span class="dim">-</span>' : Math.round(r.share * 100) + "%" },
+        { key: "ratio", label: "Ratio", hero: true, text: r => { const [t, c] = verdict(r); return `<span class="strong">${r.ratio.toFixed(2)}x</span> <span class="pill ${c}">${t}</span>`; } }
+      ], packRows, false, ["Best packs for " + item, `${packRows.length} pack${packRows.length === 1 ? "" : "s"} on sale with it. Click a pack to see what is inside.`], ["ratio", -1], packDetail);
+    else document.getElementById("r-packs").innerHTML = `<div class="card"><h2>Packs</h2><p class="dim">No regular pack or pack on sale right now has ${esc(item)}.</p></div>`;
+
+    if (shopRows.length)
+      render(document.getElementById("r-shops"), [
+        { key: "shop", label: "Shop", text: r => `<span class="stack"><a href="${r.href}">${esc(r.shop)}</a><span class="dim">${esc(r.where)}${r.tier ? " · " + esc(r.tier) : ""}</span></span>` },
+        { key: "tokens", label: "Tokens", text: r => r.tokens.toLocaleString() + (r.qty !== 1 ? ` <span class="dim">for ${r.qty.toLocaleString()}</span>` : "") },
+        { key: "perToken", label: "$ per token", text: r => `<span class="strong">${fmt(r.perToken, 6)}</span>` },
+        { key: "rank", label: "Rank in shop", text: r => r.rank ? `#${r.rank} of ${r.of}` : '<span class="dim">-</span>' },
+        { key: "pct", label: "% of best", hero: true, text: r => pctCell(r.pct) }
+      ], shopRows, false, ["Best shops for " + item, shopRows.length === 1 ? "1 open shop sells it." : `${shopRows.length} open shops sell it.`], ["pct", -1]);
+    else document.getElementById("r-shops").innerHTML = `<div class="card"><h2>Shops</h2><p class="dim">No open shop sells ${esc(item)} right now.</p></div>`;
+  }
+
+  const pick = () => { const n = names.get(k(input.value)); if (n) show(n); };
+  input.addEventListener("input", pick);
+  input.addEventListener("change", pick);
+  document.getElementById("quick").addEventListener("click", e => {
+    const b = e.target.closest("button[data-item]");
+    if (b) { input.value = b.dataset.item; show(b.dataset.item); }
+  });
+  const start = names.get(k(new URLSearchParams(location.search).get("item")));
+  if (start) { input.value = start; show(start); }
+});
+</script></body></html>

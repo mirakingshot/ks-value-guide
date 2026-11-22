@@ -49,6 +49,8 @@ Promise.all([unitValues(), get("shops"), get("popups"), get("featured").catch(()
     ["recurring.html", "repeat", "Recurring events", "Rotating events like Fantasy Theater, with their shops and packs."],
     ["shops.html", "bag", "Permanent event shops", "What each shop token is worth."],
     ["popups.html", "gift", "Pop-up packs", "Every special pack versus regular prices."],
+    ["packs.html", "box", "Regular packs", "Every regular pack, and which ones set item values."],
+    ["finder.html", "search", "Item finder", "The best pack and shop for any item right now."],
     ["build.html", "calc", "Pack builder", "Check any pack by typing in its items and price."],
     ["masterlist.html", "list", "Masterlist", "The dollar value of every upgrade item."]
   ].map(l => bigLink(...l)).join("");

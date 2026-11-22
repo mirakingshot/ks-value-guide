@@ -35,26 +35,60 @@ async function get(name) {
   if (name === "featured") return { featured: rows.filter(r => r.title) };
   const groups = new Map();
   const key = name === "shops" ? "shop" : "pack";
+  const yes = v => /^(true|yes|1|x)$/i.test(v || "");
   for (const r of rows.filter(r => r[key] && r.item)) {
-    if (!groups.has(r[key])) groups.set(r[key], { name: r[key], price: num(r.price), limit: r.limit, event: r.event || "", recurring: (r.recurring || r.reoccuring || r.reoccurring || "").trim(), list: [] });
-    const q = num(r.qty);
-    groups.get(r[key]).list.push(name === "shops" ? { item: r.item, tokens: num(r.tokens), qty: q > 0 ? q : 1, tier: r.tier || "" } : { item: r.item, qty: q });
+    if (!groups.has(r[key])) groups.set(r[key], { name: r[key], price: num(r.price), limit: r.limit, event: r.event || "", recurring: (r.recurring || r.reoccuring || r.reoccurring || "").trim(), category: (r.category || "").trim(), group: (r.group || "").trim(), available: false, list: [] });
+    const g = groups.get(r[key]), q = num(r.qty);
+    if (yes(r.available)) g.available = true;
+    g.list.push(name === "shops" ? { item: r.item, tokens: num(r.tokens), qty: q > 0 ? q : 1, tier: r.tier || "" }
+      : name === "packs" ? { item: r.item, qty: q, base: yes(r.base), value: num(r.value) } : { item: r.item, qty: q });
   }
-  return name === "shops"
-    ? { shops: [...groups.values()].map(g => ({ name: g.name, event: g.event, recurring: g.recurring, items: g.list })) }
-    : { popups: [...groups.values()].map(g => ({ name: g.name, price: g.price, limit: g.limit, event: g.event, recurring: g.recurring, contents: g.list })) };
+  if (name === "shops") return { shops: [...groups.values()].map(g => ({ name: g.name, event: g.event, recurring: g.recurring, items: g.list })) };
+  if (name === "packs") return { packs: [...groups.values()].map(g => ({ name: g.name, price: g.price, limit: g.limit, category: g.category, group: g.group, contents: g.list })) };
+  return { popups: [...groups.values()].map(g => ({ name: g.name, price: g.price, limit: g.limit, event: g.event, recurring: g.recurring, available: g.available, contents: g.list })) };
 }
 
 window.addEventListener("unhandledrejection", e =>
   document.querySelector("main").insertAdjacentHTML("afterbegin",
     `<p class="bad">Couldn't load the data: ${e.reason.message}. Check the links in config.js.</p>`));
 
+// Item values. The values tab gives a starting value per item; a row marked "base" in the packs tab replaces it.
+// A base row's value is the dollars of the pack price given to that row ("value" column). Left blank, the pack's
+// blank base rows share what is left of the price once its other items are priced. A pack whose other items cannot
+// all be priced yet is retried after the rest; if it never can be, the item keeps its values-tab value.
 async function unitValues() {
-  const { values } = await get("values");
-  const m = {};
-  for (const v of values) if (!v.superseded) m[v.item] = { unit: v.usd / v.qty, source: v.source };
+  const [{ values }, { packs }] = await Promise.all([get("values"), get("packs").catch(() => ({ packs: [] }))]);
+  const fallback = {};
+  for (const v of values) if (!v.superseded) fallback[v.item] = { unit: v.usd / v.qty, source: v.source };
+  const label = p => p.name + (p.price ? ` ($${+p.price.toFixed(2)})` : "");
+  const isBase = c => c.base && c.qty > 0;
+  const based = packs.filter(p => p.contents.some(isBase));
+  const baseItems = new Set(based.flatMap(p => p.contents.filter(isBase).map(c => c.item)));
+  const m = Object.fromEntries(Object.entries(fallback).filter(([k]) => !baseItems.has(k)));
+  let todo = [];
+  for (const p of based) {
+    for (const c of p.contents) if (isBase(c) && isFinite(c.value)) m[c.item] = { unit: c.value / c.qty, source: label(p), pack: p.name };
+    if (p.contents.some(c => isBase(c) && !isFinite(c.value))) todo.push(p);
+  }
+  for (let progress = true; todo.length && progress;) {
+    progress = false;
+    todo = todo.filter(p => {
+      const blank = p.contents.filter(c => isBase(c) && !isFinite(c.value));
+      const blankItems = new Set(blank.map(c => c.item));
+      const rest = p.contents.filter(c => !blankItems.has(c.item));
+      // A non-base row with a value (like "Other") counts as that many dollars
+      const rowWorth = c => isFinite(c.value) ? c.value : m[c.item] ? m[c.item].unit * c.qty : null;
+      if (rest.some(c => rowWorth(c) == null)) return true;
+      const left = p.price - rest.reduce((a, c) => a + rowWorth(c), 0);
+      blank.forEach(c => (m[c.item] = { unit: Math.max(0, left) / blank.length / c.qty, source: label(p), pack: p.name }));
+      progress = true;
+      return false;
+    });
+  }
+  for (const k in fallback) if (!m[k]) m[k] = fallback[k];
   return m;
 }
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 // Item pictures in images/: item name as written in the sheets (any case) -> file name without .png
 const ITEM_IMAGES = {
@@ -85,10 +119,13 @@ const ITEM_IMAGES = {
   "custom mythic hero gear chest": "custommythicherochest",
   "1hr general speed": "generalspeed",
   "3hr general speed": "generalspeed",
+  "5m general speed": "generalspeed",
+  "1m general speed": "generalspeed",
   "gold": "gold",
   "governor gear mats chest": "govmatschest",
   "growth manual": "growthmanual",
   "1h learning speed": "learningspeed",
+  "3h learning speed": "learningspeed",
   "nutrient potion": "nutrientpotion",
   "pet food": "petfood",
   "1h research speed": "researchspeed",
@@ -96,9 +133,10 @@ const ITEM_IMAGES = {
   "gen 5 custom hero widget": "gen5widget"
 };
 // Item name with its picture in front; items without one get an empty slot so names stay lined up
+const itemImg = name => { const f = ITEM_IMAGES[String(name).trim().toLowerCase()]; return f ? `images/${f}.png` : ""; };
 function itemName(name) {
-  const f = ITEM_IMAGES[String(name).trim().toLowerCase()];
-  return `<span class="item-name">${f ? `<img class="item-img" src="images/${f}.png" alt="" width="28" height="28" loading="lazy">` : `<span class="item-img"></span>`}<span>${esc(name)}</span></span>`;
+  const src = itemImg(name);
+  return `<span class="item-name">${src ? `<img class="item-img" src="${src}" alt="" width="28" height="28" loading="lazy">` : `<span class="item-img"></span>`}<span>${esc(name)}</span></span>`;
 }
 
 const ICONS = {
@@ -115,7 +153,9 @@ const ICONS = {
   cal: '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   home: '<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>',
-  go: '<path d="M5 12h14M13 6l6 6-6 6"/>'
+  go: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  box: '<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>',
+  search: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'
 };
 const icon = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>`;
 const hue = s => "c" + ([...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % 5);
@@ -128,6 +168,8 @@ function header(active) {
     ["recurring.html", "Recurring events", "repeat", "Events that come back on a rotation, with their currency shops ranked by dollars of value per token and their pop-up packs."],
     ["shops.html", "Permanent event shops", "bag", "Currency shops that are always available, ranked by dollars of value per token."],
     ["popups.html", "Pop-up packs", "gift", "How special event packs compare with the same contents at regular prices."],
+    ["packs.html", "Regular packs", "box", "Every regular pack and what is inside. A base pack sets the value of an item."],
+    ["finder.html", "Item finder", "search", "Pick an item to find the best value pack and shop for it right now."],
     ["build.html", "Pack builder", "calc", "Type in a pack's items and price to see how it compares with regular packs."],
     ["masterlist.html", "Masterlist", "list", "What every upgrade item is worth in dollars, based on regular packs."],
     ["others.html", "Other Pages by Mira", "link", "More Kingshot tools I built.", true]
@@ -151,9 +193,10 @@ function stats(list) {
 }
 
 // cols: [{key, label, text:(row)=>html, num:true}]; sortable, searchable on col 0
-function render(el, cols, rows, search, head, init, expand) {
+// openWhen (optional): rows matching it start expanded
+function render(el, cols, rows, search, head, init, expand, openWhen) {
   let key = init ? init[0] : cols[0].key, dir = init ? init[1] : 1, q = "";
-  const open = new Set();
+  const open = new Set(expand && openWhen ? rows.filter(openWhen) : []);
   const val = (r, c) => (c.sort ? c.sort(r) : r[c.key]);
   function draw() {
     const c = cols.find(c => c.key === key);
@@ -203,12 +246,14 @@ function scorePacks(m, popups) {
   return popups.map(p => {
     let worth = 0;
     const lines = p.contents.map(c => {
-      const u = m[c.item] ? m[c.item].unit : null;
-      const w = u == null ? null : u * c.qty;
+      // A packs-tab row with its own value and no base mark (like "Other") is worth exactly that
+      const fixed = !c.base && isFinite(c.value);
+      const u = fixed ? (c.qty ? c.value / c.qty : null) : m[c.item] ? m[c.item].unit : null;
+      const w = fixed ? c.value : u == null ? null : u * c.qty;
       if (w != null) worth += w;
-      return { item: c.item, qty: c.qty, unit: u, worth: w };
+      return { item: c.item, qty: c.qty, unit: u, worth: w, base: !!c.base };
     });
-    return { name: p.name, sample: p.sample, price: p.price, limit: p.limit, event: p.event, recurring: p.recurring || "", worth, ratio: worth / p.price, lines, missing: lines.filter(l => l.worth == null).map(l => l.item) };
+    return { name: p.name, sample: p.sample, price: p.price, limit: p.limit, event: p.event, recurring: p.recurring || "", category: p.category || "", available: !!p.available, worth, ratio: worth / p.price, lines, missing: lines.filter(l => l.worth == null).map(l => l.item) };
   });
 }
 const verdict = r => r.ratio >= 1.25 ? ["Great", "green"] : r.ratio >= 0.9 ? ["Fair", "amber"] : ["Poor", "rose"];
@@ -225,7 +270,7 @@ function packDetail(r) {
   const unpriced = '<span class="pill amber">unpriced</span>';
   const body = r.lines.map(l => {
     const share = l.worth != null && r.worth ? l.worth / r.worth : null;
-    return `<tr><td>${itemName(l.item)}</td><td>${l.qty.toLocaleString()}</td><td>${l.unit == null ? unpriced : fmt(l.unit)}</td>` +
+    return `<tr><td>${itemName(l.item)}${l.base ? ` <span class="pill green" title="This pack sets the value of ${esc(l.item)}">base</span>` : ""}</td><td>${l.qty.toLocaleString()}</td><td>${l.unit == null ? unpriced : fmt(l.unit)}</td>` +
       `<td>${l.worth == null ? unpriced : `<span class="strong">${fmt(l.worth, 2)}</span>`}</td>` +
       `<td>${share == null ? '<span class="dim">-</span>' : Math.round(share * 100) + `%<span class="meter" style="width:${Math.round(share * 60)}px"></span>`}</td></tr>`;
   }).join("");
