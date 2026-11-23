@@ -155,7 +155,8 @@ const ICONS = {
   home: '<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>',
   go: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   box: '<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>',
-  search: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'
+  search: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
+  ext: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/>'
 };
 const icon = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>`;
 const hue = s => "c" + ([...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % 5);
@@ -172,13 +173,14 @@ function header(active) {
     ["finder.html", "Item finder", "search", "Pick an item to find the best value pack and shop for it right now."],
     ["build.html", "Pack builder", "calc", "Type in a pack's items and price to see how it compares with regular packs."],
     ["masterlist.html", "Masterlist", "list", "What every upgrade item is worth in dollars, based on regular packs."],
-    ["others.html", "Other Pages by Mira", "link", "More Kingshot tools I built.", true]
+    ["others.html", "Other Pages by Mira", "link", "More Kingshot tools I built.", true],
+    ["https://mirakingshot.github.io/", "My other projects", "ext", ""]
   ];
   const cur = pages.find(p => p[0] === active);
   const logo = `<svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l11 8-11 18L5 11z" fill="#f0553f"/><path d="M5 11h22L16 29z" fill="#ffb43a"/><path d="M16 3l5 8H11z" fill="#4fbfd8"/></svg>`;
   document.body.insertAdjacentHTML("afterbegin",
     `<aside class="side"><div class="brand">${logo}<span>Mira’s KS<small>Value Guide</small></span></div>
-    <nav aria-label="Pages">${pages.filter(p => !p[4]).map(([h, t, i]) => `<a href="${h}" title="${t}"${h === active ? " aria-current=page" : ""}>${icon(i)}${t}</a>`).join("")}</nav>
+    <nav aria-label="Pages">${pages.filter(p => !p[4]).map(([h, t, i]) => `<a href="${h}" title="${t}"${h === active ? " aria-current=page" : ""}${/^https?:/.test(h) ? ' class="ext" target="_blank" rel="noopener"' : ""}>${icon(i)}${t}</a>`).join("")}</nav>
     <p class="tagline">built on #1584 pack data</p></aside>`);
   document.querySelector("main").insertAdjacentHTML("afterbegin",
     `<p class="eyebrow">Mira’s KS Value Guide</p><h1>${cur[1]}</h1><p class="sub">${cur[3]}</p><div class="stats" id="stats"></div>`);
