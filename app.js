@@ -267,7 +267,7 @@ function scorePacks(m, popups) {
     return { name: p.name, sample: p.sample, price: p.price, limit: p.limit, event: p.event, recurring: p.recurring || "", category: p.category || "", available: !!p.available, worth, ratio: worth / p.price, lines, missing: lines.filter(l => l.worth == null).map(l => l.item) };
   });
 }
-const verdict = r => r.ratio >= 1.25 ? ["Great", "green"] : r.ratio >= 0.9 ? ["Fair", "amber"] : ["Poor", "rose"];
+const verdict = r => r.ratio >= 2 ? ["Great", "green"] : r.ratio >= 1.5 ? ["Good", "c1"] : r.ratio >= 0.9 ? ["Fair", "amber"] : ["Poor", "rose"];
 
 function bigLink(href, ic, title, desc, badge, cls = "", pillCls = "amber") {
   const url = /^\s*javascript:/i.test(href) ? "#" : href;

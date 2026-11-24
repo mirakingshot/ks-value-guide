@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pop-up packs - Mira’s KS Value Guide</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="theme.css"></head>
 <body><main><div id="t"></div>
-<p class="note">Pack worth = what the same contents cost at regular pack rates. Ratio above 1.00x means better than regular packs. Great is 1.25x or more, fair is 0.90x to 1.25x, poor is under 0.90x. If an item has no pack price, it is left out and the row is marked partial, so the real ratio is higher.</p></main>
+<p class="note">Pack worth = what the same contents cost at regular pack rates. Ratio above 1.00x means better than regular packs. Great is 2.00x or more, good is 1.50x to 1.99x, fair is 0.90x to 1.49x, poor is under 0.90x. If an item has no pack price, it is left out and the row is marked partial, so the real ratio is higher.</p></main>
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script>
@@ -12,7 +12,7 @@ Promise.all([unitValues(), get("popups")]).then(([m, { popups: all }]) => {
   stats([
     ["Packs tracked", rows.length, "gift", ""],
     ["Best ratio", rows.length ? Math.max(...rows.map(r => r.ratio)).toFixed(2) + "x" : "none yet", "bars", "pink"],
-    ["Great deals", rows.filter(r => r.ratio >= 1.25).length, "gem", "peach"]
+    ["Great deals", rows.filter(r => r.ratio >= 2).length, "gem", "peach"]
   ]);
   if (!rows.length) {
     document.getElementById("t").innerHTML = `<div class="card"><h2>Pop-up packs</h2><p class="dim">No general pop-up packs yet. Packs that belong to an event are on their <a href="event.html">Seasonal events</a> or <a href="recurring.html">Recurring events</a> page.</p></div>`;
