@@ -130,10 +130,19 @@ const ITEM_IMAGES = {
   "pet food": "petfood",
   "1h research speed": "researchspeed",
   "100 xp enhancement": "xpenhancement",
-  "gen 5 custom hero widget": "gen5widget"
+  "gen 5 custom hero widget": "gen5widget",
+  "deployment capacity boost ii (12hrs)": "deployboost",
+  "troop damage up ii (12hrs)": "lethalityup",
+  "troop attack up ii (12hrs)": "attackup",
+  "troops defense up ii (12hrs)": "defenseup",
+  "troops health up ii (12hrs)": "healthup",
+  "enemy troops attack down ii (12hrs)": "enemyatkdown",
+  "enemy troops defense down ii (12hrs)": "enemydefdown",
+  "feast bag": "feastbag"
 };
 // Item name with its picture in front; items without one get an empty slot so names stay lined up
-const itemImg = name => { const f = ITEM_IMAGES[String(name).trim().toLowerCase()]; return f ? `images/${f}.png` : ""; };
+// Items without a picture yet get the "idk" placeholder; pass strict=true to get "" instead
+const itemImg = (name, strict) => { const f = ITEM_IMAGES[String(name).trim().toLowerCase()]; return f ? `images/${f}.png` : strict ? "" : "images/idk.png"; };
 function itemName(name) {
   const src = itemImg(name);
   return `<span class="item-name">${src ? `<img class="item-img" src="${src}" alt="" width="28" height="28" loading="lazy">` : `<span class="item-img"></span>`}<span>${esc(name)}</span></span>`;

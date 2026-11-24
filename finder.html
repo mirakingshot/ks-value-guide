@@ -36,7 +36,7 @@ Promise.all([unitValues(), get("packs").catch(() => ({ packs: [] })), get("popup
   document.getElementById("items").innerHTML = sorted.map(n => `<option value="${esc(n)}"></option>`).join("");
   // Quick picks: the priced items with a picture that turn up in the most packs and shops
   document.getElementById("quick").innerHTML = `<span class="chip-label">Quick picks</span>` +
-    sorted.filter(n => itemImg(n) && m[n]).sort((a, b) => (seen[k(b)] || 0) - (seen[k(a)] || 0)).slice(0, 10)
+    sorted.filter(n => itemImg(n, true) && m[n]).sort((a, b) => (seen[k(b)] || 0) - (seen[k(a)] || 0)).slice(0, 10)
       .map(n => `<button type="button" class="chip" data-item="${esc(n)}">${itemName(n)}</button>`).join("");
 
   stats([
