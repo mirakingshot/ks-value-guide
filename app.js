@@ -45,7 +45,7 @@ async function get(name) {
   }
   if (name === "shops") return { shops: [...groups.values()].map(g => ({ name: g.name, event: g.event, recurring: g.recurring, items: g.list })) };
   if (name === "packs") return { packs: [...groups.values()].map(g => ({ name: g.name, price: g.price, limit: g.limit, category: g.category, group: g.group, contents: g.list })) };
-  return { popups: [...groups.values()].map(g => ({ name: g.name, price: g.price, limit: g.limit, event: g.event, recurring: g.recurring, available: g.available, contents: g.list })) };
+  return { popups: [...groups.values()].map(g => ({ name: g.name, price: g.price, limit: g.limit, event: g.event, recurring: g.recurring, group: g.group, available: g.available, contents: g.list })) };
 }
 
 window.addEventListener("unhandledrejection", e =>
@@ -264,7 +264,7 @@ function scorePacks(m, popups) {
       if (w != null) worth += w;
       return { item: c.item, qty: c.qty, unit: u, worth: w, base: !!c.base };
     });
-    return { name: p.name, sample: p.sample, price: p.price, limit: p.limit, event: p.event, recurring: p.recurring || "", category: p.category || "", available: !!p.available, worth, ratio: worth / p.price, lines, missing: lines.filter(l => l.worth == null).map(l => l.item) };
+    return { name: p.name, sample: p.sample, price: p.price, limit: p.limit, event: p.event, recurring: p.recurring || "", category: p.category || "", group: p.group || "", available: !!p.available, worth, ratio: worth / p.price, lines, missing: lines.filter(l => l.worth == null).map(l => l.item) };
   });
 }
 const verdict = r => r.ratio >= 2 ? ["Great", "green"] : r.ratio >= 1.5 ? ["Good", "c1"] : r.ratio >= 0.9 ? ["Fair", "amber"] : ["Poor", "rose"];
@@ -300,6 +300,52 @@ const packCols = [
   { key: "price", label: "Price", text: r => fmt(r.price, 2) },
   { key: "worth", label: "Worth at pack rates", text: r => fmt(r.worth, 2) + (r.missing.length ? ` <span class="dim" title="Unpriced: ${esc(r.missing.join(", "))}">(partial)</span>` : "") },
   { key: "ratio", label: "Ratio", text: r => `<span class="strong">${r.ratio.toFixed(2)}x</span>` },
+  { key: "v", label: "Verdict", hero: true, sort: r => r.ratio, text: r => { const [t, c] = verdict(r); return `<span class="pill ${c}">${t}</span>`; } }
+];
+
+// Pack families: variations you pick one of. Packs share a family when they have the same "group" column,
+// or when two or more are named "Family - Option". Takes scorePacks rows, returns one row per family.
+function packFamilies(scored) {
+  const prefix = n => n.includes(" - ") ? n.slice(0, n.indexOf(" - ")).trim() : "";
+  const count = {};
+  scored.forEach(r => { const p = prefix(r.name); if (p) count[p] = (count[p] || 0) + 1; });
+  const fams = new Map();
+  scored.forEach(r => {
+    const g = r.group || (count[prefix(r.name)] > 1 ? prefix(r.name) : r.name);
+    if (!fams.has(g)) fams.set(g, { name: g, category: r.category || "Other", variants: [] });
+    const option = r.name !== g && r.name.startsWith(g) ? r.name.slice(g.length).replace(/^\s*[-–:]\s*/, "") : r.name;
+    fams.get(g).variants.push({ ...r, option: option || r.name });
+  });
+  return [...fams.values()].map(f => {
+    const prices = f.variants.map(v => v.price).filter(isFinite), worths = f.variants.map(v => v.worth);
+    const items = [...new Set(f.variants.flatMap(v => v.lines.map(l => l.item)))];
+    const top = f.variants.reduce((a, v) => (v.ratio || 0) > (a.ratio || 0) ? v : a, f.variants[0]);
+    return { ...f, items, top, lo: Math.min(...prices), hi: Math.max(...prices), wlo: Math.min(...worths), whi: Math.max(...worths),
+      best: top.ratio || 0, ratio: top.ratio || 0, missing: [...new Set(f.variants.flatMap(v => v.missing))],
+      base: [...new Set(f.variants.flatMap(v => v.lines.filter(l => l.base).map(l => l.item)))],
+      find: [f.name, ...f.variants.map(v => v.name), ...items].join(" | ").toLowerCase() };
+  });
+}
+const money = n => "$" + n.toFixed(2);
+const range = (lo, hi) => lo === hi ? money(lo) : `${money(lo)} – ${money(hi)}`;
+const itemChips = lines => lines.map(l => `<span class="ct"><img src="${itemImg(l.item)}" alt="" width="20" height="20" loading="lazy"><b>${l.qty.toLocaleString()}</b> ${esc(l.item)}${l.base ? ' <span class="pill green">base</span>' : ""}</span>`).join("");
+// Expanded family row: one pack shows its full breakdown; several show the options side by side
+function famDetail(f) {
+  if (f.variants.length === 1) return packDetail(f.variants[0]);
+  const differ = f.variants.some(v => v.ratio < f.best), lim = f.variants[0].limit;
+  return `<div class="breakdown"><p class="dim">${f.lo === f.hi ? `Pick one of ${f.variants.length} options` : `${f.variants.length} options`}${lim ? ` (limit ${esc(lim)})` : ""}.${differ ? " The best value is marked." : ""}</p>` +
+    `<table class="opts"><thead><tr><th>Option</th><th>What's inside</th><th>Price</th><th>Worth</th><th>Ratio</th></tr></thead><tbody>` +
+    f.variants.map(v => { const [t, c] = verdict(v); return `<tr${differ && v.ratio === f.best ? ' class="best"' : ""}><td>${esc(v.option)}</td><td><div class="cts">${itemChips(v.lines)}</div></td><td>${money(v.price)}</td>` +
+      `<td>${fmt(v.worth, 2)}${v.missing.length ? ` <span class="dim" title="Unpriced: ${esc(v.missing.join(", "))}">(partial)</span>` : ""}</td><td><span class="strong">${v.ratio.toFixed(2)}x</span> <span class="pill ${c}">${t}</span></td></tr>`; }).join("") +
+    `</tbody></table></div>`;
+}
+// Columns for event and pop-up pack tables, one row per family
+const famName = r => `<span class="stack"><span>${esc(r.name)}${r.variants.some(v => v.sample) ? '<span class="tag">sample</span>' : ""}</span>${r.variants.length > 1 ? `<span class="dim">${r.lo === r.hi ? "pick 1 of " : ""}${r.variants.length}${r.lo === r.hi ? "" : " options"}</span>` : ""}</span>`;
+const famCols = [
+  { key: "name", label: "Pack", text: famName },
+  { key: "lo", label: "Price", text: r => range(r.lo, r.hi) },
+  { key: "whi", label: "Worth at pack rates", text: r => range(r.wlo, r.whi) + (r.missing.length ? ` <span class="dim" title="Unpriced: ${esc(r.missing.join(", "))}">(partial)</span>` : "") },
+  { key: "ratio", label: "Ratio", text: r => `${r.variants.length > 1 ? '<span class="dim">best </span>' : ""}<span class="strong">${r.ratio.toFixed(2)}x</span>` },
   { key: "v", label: "Verdict", hero: true, sort: r => r.ratio, text: r => { const [t, c] = verdict(r); return `<span class="pill ${c}">${t}</span>`; } }
 ];
 

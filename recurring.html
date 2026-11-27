@@ -63,7 +63,7 @@ Promise.all([unitValues(), get("shops"), get("popups"), get("events").catch(() =
   body.innerHTML = `<div id="packs"></div>${ev.packs.length && ev.shops.length ? `<h2 class="section-label">Currency shop</h2>` : ""}<div id="shops"></div>
     <p class="note">${ev.packs.length ? "Pack worth is what the same contents cost at regular pack rates. " : ""}With tiers kept separate, each tier is ranked on its own and "% of best" compares items to the best $ per token in that tier. Ranking all tiers together compares every item across every tier. Worth is the value of the whole purchase (Qty times the item's baseline). Items with no pack price are unpriced.</p>`;
   if (ev.packs.length)
-    render(document.getElementById("packs"), packCols, ev.packs, false, ["Packs", "Click a pack to see what is inside."], ["ratio", -1], packDetail);
+    render(document.getElementById("packs"), famCols, packFamilies(ev.packs), false, ["Packs", "Click a pack to see what is inside. Packs you pick one of are grouped, so click to compare the options."], ["ratio", -1], famDetail);
   const shopsEl = document.getElementById("shops");
   const views = ev.shops.map(s => {
     const sec = document.createElement("details");
