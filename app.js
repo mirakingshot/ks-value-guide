@@ -40,7 +40,7 @@ async function get(name) {
     if (!groups.has(r[key])) groups.set(r[key], { name: r[key], price: num(r.price), limit: r.limit, event: r.event || "", recurring: (r.recurring || r.reoccuring || r.reoccurring || "").trim(), category: (r.category || "").trim(), group: (r.group || "").trim(), available: false, list: [] });
     const g = groups.get(r[key]), q = num(r.qty);
     if (yes(r.available)) g.available = true;
-    g.list.push(name === "shops" ? { item: r.item, tokens: num(r.tokens), qty: q > 0 ? q : 1, tier: r.tier || "" }
+    g.list.push(name === "shops" ? { item: r.item, tokens: num(r.tokens), qty: q > 0 ? q : 1, tier: r.tier || "", pick: yes(r.pick), f2p: yes(r.f2p || r["f2p pick"]) }
       : name === "packs" ? { item: r.item, qty: q, base: yes(r.base), value: num(r.value) } : { item: r.item, qty: q });
   }
   if (name === "shops") return { shops: [...groups.values()].map(g => ({ name: g.name, event: g.event, recurring: g.recurring, items: g.list })) };
@@ -353,7 +353,7 @@ function shopView(m, s) {
   const rows = s.items.map(x => {
     const u = m[x.item] ? m[x.item].unit : null;
     const qty = x.qty || 1, value = u == null ? null : u * qty;
-    return { item: x.item, tier: x.tier, tokens: x.tokens, qty, unit: u, value, perToken: value == null ? null : value / x.tokens };
+    return { item: x.item, tier: x.tier, tokens: x.tokens, qty, unit: u, value, perToken: value == null ? null : value / x.tokens, pick: !!x.pick, f2p: !!x.f2p };
   });
   const best = Math.max(0, ...rows.map(r => r.perToken || 0));
   rows.forEach(r => (r.pct = r.perToken == null ? null : r.perToken / best));
@@ -361,7 +361,7 @@ function shopView(m, s) {
   const ranked = rows.filter(r => r.perToken != null).sort((a, b) => b.perToken - a.perToken);
   ranked.forEach((r, i) => {
     r.rank = i && r.perToken === ranked[i - 1].perToken ? ranked[i - 1].rank : i + 1;
-    r.rowCls = r.rank <= 3 ? "top" : r.pct < 0.5 ? "low" : "";
+    r.rowCls = r.rank <= 3 ? "top" : r.pct < 0.5 && !r.pick && !r.f2p ? "low" : "";  // picks never fade
   });
   return { name: s.name, event: s.event, rows, best, unpriced: rows.filter(r => r.perToken == null).length };
 }
@@ -385,12 +385,16 @@ function tierColors(order) {
   return map;
 }
 
+// Mira's own suggestions from the pick / f2p columns of the shops tab, shown whatever the value ranking says
+const pickTags = r => (r.pick ? `<span class="mpick" title="Mira's suggested pick from this shop">${icon("star")}Mira's pick</span>` : "") +
+  (r.f2p ? `<span class="mpick f2p" title="Mira's suggested pick for free-to-play players">${icon("star")}Mira's F2P pick</span>` : "");
+
 // tierOrder (optional): array of tier names; adds a Tier column that sorts in sheet order
 function shopCols(rows, tierOrder) {
   const multi = rows.some(r => r.qty !== 1);
   const tc = tierOrder ? tierColors(tierOrder) : {};
   return [
-    { key: "item", label: "Item", text: r => `<span class="ranked"><span class="rank${r.rank ? "" : " none"}" aria-label="${r.rank ? "Rank " + r.rank : "Unranked"}">${r.rank ? "#" + r.rank : "–"}</span>${itemName(r.item)}</span>` },
+    { key: "item", label: "Item", text: r => `<span class="ranked"><span class="rank${r.rank ? "" : " none"}" aria-label="${r.rank ? "Rank " + r.rank : "Unranked"}">${r.rank ? "#" + r.rank : "–"}</span>${itemName(r.item)}${r.pick || r.f2p ? `<span class="mpicks">${pickTags(r)}</span>` : ""}</span>` },
     ...(tierOrder ? [{ key: "tier", label: "Tier", sort: r => tierOrder.indexOf(r.tier), text: r => `<span class="pill ${tc[r.tier]}">${esc(r.tier || "Other")}</span>` }] : []),
     { key: "tokens", label: "Tokens", text: r => r.tokens.toLocaleString() },
     ...(multi ? [{ key: "qty", label: "Qty", text: r => r.qty.toLocaleString() }] : []),

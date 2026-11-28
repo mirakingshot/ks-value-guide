@@ -209,3 +209,10 @@ button.chip{cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
 /* External link at the end of the side nav, set apart by a thin line */
 @media(min-width:861px){.t3 nav a.ext{position:relative;margin-top:17px}.t3 nav a.ext::before{content:"";position:absolute;left:14px;right:14px;top:-12px;border-top:1px solid var(--line)}}
 @media(max-width:860px){.t3 nav a.ext{margin-left:12px}}
+
+/* Mira's pick tags on shop items: solid coral for Mira's pick, solid teal for the F2P pick */
+.mpicks{display:inline-flex;flex-wrap:wrap;gap:5px}
+.mpick{display:inline-flex;align-items:center;gap:4px;padding:2px 9px 2px 6px;border-radius:999px;background:var(--coral);color:#fff;font-size:.72rem;font-weight:700;white-space:nowrap}
+.mpick.f2p{background:var(--teal-i)}
+.mpick svg{width:12px;height:12px;fill:currentColor;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round}
+@media(max-width:640px){.ranked:has(.mpicks){flex-wrap:wrap;row-gap:6px}.ranked:has(.mpicks) .item-name{flex:1;min-width:0}.ranked .mpicks{flex-basis:100%}}

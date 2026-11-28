@@ -88,7 +88,7 @@ Promise.all([unitValues(), get("packs").catch(() => ({ packs: [] })), get("popup
 
     if (shopRows.length)
       render(document.getElementById("r-shops"), [
-        { key: "shop", label: "Shop", text: r => `<span class="stack"><a href="${r.href}">${esc(r.shop)}</a><span class="dim">${esc(r.where)}${r.tier ? " · " + esc(r.tier) : ""}</span></span>` },
+        { key: "shop", label: "Shop", text: r => `<span class="stack"><a href="${r.href}">${esc(r.shop)}</a><span class="dim">${esc(r.where)}${r.tier ? " · " + esc(r.tier) : ""}</span>${r.pick || r.f2p ? `<span class="mpicks">${pickTags(r)}</span>` : ""}</span>` },
         { key: "tokens", label: "Tokens", text: r => r.tokens.toLocaleString() + (r.qty !== 1 ? ` <span class="dim">for ${r.qty.toLocaleString()}</span>` : "") },
         { key: "perToken", label: "$ per token", text: r => `<span class="strong">${fmt(r.perToken, 6)}</span>` },
         { key: "rank", label: "Rank in shop", text: r => r.rank ? `#${r.rank} of ${r.of}` : '<span class="dim">-</span>' },
